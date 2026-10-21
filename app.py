@@ -3,7 +3,6 @@ from flask import Flask, request, render_template_string, redirect
 
 app = Flask(__name__)
 
-# تم تحديث التوكن والآيدي الجديد هنا
 BOT_TOKEN = "8610512824:AAG0c-L4fq2bXbJVOVZag_EtN75wwPRBNBE"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
@@ -15,6 +14,15 @@ def send_message(chat_id, text, reply_markup=None):
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
     if reply_markup:
         payload["reply_markup"] = reply_markup
+    try:
+        requests.post(url, json=payload, timeout=5)
+    except Exception as e:
+        print(f"Error: {e}")
+
+# دالة جديدة عشان تقفل اللفة اللي على الزرار
+def answer_callback(callback_id):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
+    payload = {"callback_query_id": callback_id}
     try:
         requests.post(url, json=payload, timeout=5)
     except Exception as e:
@@ -109,8 +117,11 @@ def webhook():
     
     if 'callback_query' in update:
         cb = update['callback_query']
+        cb_id = cb['id']  # سحب معرف الضغطة
         chat_id = cb['message']['chat']['id']
         data = cb['data']
+        
+        answer_callback(cb_id)  # إبلاغ تيليجرام فوراً عشان الزرار يبطل يلف
         
         if data == 'joke':
             send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
