@@ -3,10 +3,10 @@ from flask import Flask, request, render_template_string, redirect
 
 app = Flask(__name__)
 
-# تم دمج التوكن والآيدي هنا مباشرة
-BOT_TOKEN = "8414024182:AAE4M4q5LSeiHT3kiNUy3t0nvvzQu_oODlQ"
+# تم تحديث التوكن والآيدي الجديد هنا
+BOT_TOKEN = "8610512824:AAG0c-L4fq2bXbJVOVZag_EtN75wwPRBNBE"
 ADMIN_ID = "7870803639"
-BASE_URL = "https://freeusr-bot.onrender.com" # تأكد أن اسمك في Render سيكون freeusr-bot
+BASE_URL = "https://freeusr-bot.onrender.com"
 
 user_state = {}
 
