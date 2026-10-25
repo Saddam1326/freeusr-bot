@@ -660,5 +660,24 @@ def webhook():
             
     return "ok", 200
 
+# ==========================================
+# 🚨 كود ربط الـ Webhook التلقائي (أضفه هنا)
+# ==========================================
+def set_webhook():
+    webhook_url = f"{BASE_URL}/webhook"
+    print(f"⏳ جاري ربط الـ Webhook بالرابط: {webhook_url}")
+    try:
+        response = requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={webhook_url}", timeout=10)
+        if response.status_code == 200 and response.json().get("ok"):
+            print("✅ تم ربط الـ Webhook بنجاح! البوت جاهز لاستقبال الرسائل.")
+        else:
+            print("❌ فشل ربط الـ Webhook:", response.text)
+    except Exception as e:
+        print("❌ خطأ أثناء الاتصال بتليجرام:", e)
+
+# استدعاء الدالة عند تشغيل السيرفر
+set_webhook()
+
+# تشغيل السيرفر
 if __name__ == '__main__':
     app.run(port=5000)
