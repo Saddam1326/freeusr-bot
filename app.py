@@ -8,8 +8,8 @@ from phonenumbers import geocoder, carrier
 
 app = Flask(__name__)
 
-# ============= الإعدادات الأساسية =============
-BOT_TOKEN = "8610512824:AAG0c-L4fq2bXbJVOVZag_EtN75wwPRBNBE"
+# ============= الإعدادات الأساسية (التوكن الجديد) =============
+BOT_TOKEN = "8923440610:AAGP_s-u-cH5509pYb82zmcLkGZ2t1tbQZc"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
