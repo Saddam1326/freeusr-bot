@@ -9,7 +9,7 @@ from phonenumbers import geocoder, carrier
 app = Flask(__name__)
 
 # ============= الإعدادات الأساسية (التوكن الجديد) =============
-BOT_TOKEN = "8923440610:AAGP_s-u-cH5509pYb82zmcLkGZ2t1tbQZc"
+BOT_TOKEN = "8997379641:AAGl00Dmd9ZJVTpqS-qACvanKTOEcDXgBKs"
 ADMIN_ID = "7870803639"
 BASE_URL = "https://freeusr-bot.onrender.com"
 
